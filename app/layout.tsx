@@ -6,6 +6,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { StoreProvider } from "@/components/StoreProvider";
 import { getProblems, getUserStats } from "@/app/actions";
 
+export const dynamic = "force-dynamic";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
