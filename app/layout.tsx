@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Sidebar } from "@/components/Sidebar";
 import { StoreProvider } from "@/components/StoreProvider";
 import { getProblems, getUserStats } from "@/app/actions";
+import { initDb } from "@/db/init";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await initDb();
   const problems = await getProblems();
   const stats = await getUserStats();
 
