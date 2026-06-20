@@ -1,0 +1,202 @@
+[
+  {
+    "id": 1,
+    "title": "Two Sum",
+    "difficulty": "Easy",
+    "topics": ["Array", "Hash Table"],
+    "companyTags": ["Amazon", "Google", "Facebook"],
+    "url": "https://leetcode.com/problems/two-sum/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 2,
+    "title": "Valid Parentheses",
+    "difficulty": "Easy",
+    "topics": ["String", "Stack"],
+    "companyTags": ["Amazon", "Facebook", "Microsoft"],
+    "url": "https://leetcode.com/problems/valid-parentheses/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 3,
+    "title": "Merge Two Sorted Lists",
+    "difficulty": "Easy",
+    "topics": ["Linked List", "Recursion"],
+    "companyTags": ["Amazon", "Microsoft", "Apple"],
+    "url": "https://leetcode.com/problems/merge-two-sorted-lists/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 4,
+    "title": "Best Time to Buy and Sell Stock",
+    "difficulty": "Easy",
+    "topics": ["Array", "Dynamic Programming"],
+    "companyTags": ["Amazon", "Facebook", "Google"],
+    "url": "https://leetcode.com/problems/best-time-to-buy-and-sell-stock/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 5,
+    "title": "Valid Palindrome",
+    "difficulty": "Easy",
+    "topics": ["Two Pointers", "String"],
+    "companyTags": ["Facebook", "Amazon", "Microsoft"],
+    "url": "https://leetcode.com/problems/valid-palindrome/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 6,
+    "title": "Invert Binary Tree",
+    "difficulty": "Easy",
+    "topics": ["Tree", "Depth-First Search", "Breadth-First Search", "Binary Tree"],
+    "companyTags": ["Google", "Amazon", "Facebook"],
+    "url": "https://leetcode.com/problems/invert-binary-tree/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 7,
+    "title": "Valid Anagram",
+    "difficulty": "Easy",
+    "topics": ["Hash Table", "String", "Sorting"],
+    "companyTags": ["Google", "Amazon", "Uber"],
+    "url": "https://leetcode.com/problems/valid-anagram/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 8,
+    "title": "Binary Search",
+    "difficulty": "Easy",
+    "topics": ["Array", "Binary Search"],
+    "companyTags": ["Google", "Facebook", "Microsoft"],
+    "url": "https://leetcode.com/problems/binary-search/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 9,
+    "title": "Flood Fill",
+    "difficulty": "Easy",
+    "topics": ["Array", "Depth-First Search", "Breadth-First Search", "Matrix"],
+    "companyTags": ["Amazon", "Google", "Microsoft"],
+    "url": "https://leetcode.com/problems/flood-fill/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 10,
+    "title": "Maximum Subarray",
+    "difficulty": "Medium",
+    "topics": ["Array", "Divide and Conquer", "Dynamic Programming"],
+    "companyTags": ["Amazon", "Microsoft", "Facebook"],
+    "url": "https://leetcode.com/problems/maximum-subarray/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 11,
+    "title": "Lowest Common Ancestor of a Binary Search Tree",
+    "difficulty": "Medium",
+    "topics": ["Tree", "Depth-First Search", "Binary Search Tree", "Binary Tree"],
+    "companyTags": ["Amazon", "LinkedIn", "Facebook"],
+    "url": "https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-search-tree/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 12,
+    "title": "Insert Interval",
+    "difficulty": "Medium",
+    "topics": ["Array"],
+    "companyTags": ["Google", "LinkedIn", "Facebook"],
+    "url": "https://leetcode.com/problems/insert-interval/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 13,
+    "title": "01 Matrix",
+    "difficulty": "Medium",
+    "topics": ["Array", "Dynamic Programming", "Breadth-First Search", "Matrix"],
+    "companyTags": ["Amazon", "Google", "Facebook"],
+    "url": "https://leetcode.com/problems/01-matrix/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 14,
+    "title": "Longest Substring Without Repeating Characters",
+    "difficulty": "Medium",
+    "topics": ["Hash Table", "String", "Sliding Window"],
+    "companyTags": ["Amazon", "Bloomberg", "Google"],
+    "url": "https://leetcode.com/problems/longest-substring-without-repeating-characters/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 15,
+    "title": "3Sum",
+    "difficulty": "Medium",
+    "topics": ["Array", "Two Pointers", "Sorting"],
+    "companyTags": ["Amazon", "Facebook", "Microsoft"],
+    "url": "https://leetcode.com/problems/3sum/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 16,
+    "title": "Binary Tree Level Order Traversal",
+    "difficulty": "Medium",
+    "topics": ["Tree", "Breadth-First Search", "Binary Tree"],
+    "companyTags": ["Amazon", "LinkedIn", "Microsoft"],
+    "url": "https://leetcode.com/problems/binary-tree-level-order-traversal/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 17,
+    "title": "Clone Graph",
+    "difficulty": "Medium",
+    "topics": ["Hash Table", "Depth-First Search", "Breadth-First Search", "Graph"],
+    "companyTags": ["Facebook", "Amazon", "Google"],
+    "url": "https://leetcode.com/problems/clone-graph/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 18,
+    "title": "Evaluate Reverse Polish Notation",
+    "difficulty": "Medium",
+    "topics": ["Array", "Math", "Stack"],
+    "companyTags": ["Amazon", "LinkedIn", "Google"],
+    "url": "https://leetcode.com/problems/evaluate-reverse-polish-notation/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 19,
+    "title": "Course Schedule",
+    "difficulty": "Medium",
+    "topics": ["Depth-First Search", "Breadth-First Search", "Graph", "Topological Sort"],
+    "companyTags": ["Amazon", "Facebook", "Google"],
+    "url": "https://leetcode.com/problems/course-schedule/",
+    "status": "pending",
+    "attempts": 0
+  },
+  {
+    "id": 20,
+    "title": "Implement Trie (Prefix Tree)",
+    "difficulty": "Medium",
+    "topics": ["Hash Table", "String", "Design", "Trie"],
+    "companyTags": ["Amazon", "Google", "Twitter"],
+    "url": "https://leetcode.com/problems/implement-trie-prefix-tree/",
+    "status": "pending",
+    "attempts": 0
+  }
+]
