@@ -2,10 +2,10 @@
 
 import { useAppStore } from "@/store/useAppStore";
 import { useEffect, useState } from "react";
-import { Settings, Target, AlertTriangle } from "lucide-react";
+import { Settings, Target, AlertTriangle, ArrowDownUp } from "lucide-react";
 
 export default function SettingsPage() {
-  const { dailyGoal, setDailyGoal } = useAppStore();
+  const { dailyGoal, setDailyGoal, problemOrder, setProblemOrder } = useAppStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -56,6 +56,40 @@ export default function SettingsPage() {
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               The algorithm will prioritize your spaced repetition review queue before giving you new problems to solve. Try to complete your reviews every day so you don't fall behind.
             </p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl overflow-hidden mt-6">
+          <div className="p-6 border-b border-gray-200 dark:border-zinc-800">
+            <div className="flex items-center gap-2 mb-1">
+              <ArrowDownUp className="w-5 h-5 text-purple-500" />
+              <h2 className="text-xl font-semibold">Problem Order</h2>
+            </div>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+              Choose the order in which new pending problems are presented to you.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setProblemOrder("EasyFirst")}
+                className={`py-3 rounded-lg font-medium border-2 transition-all ${
+                  problemOrder === "EasyFirst"
+                    ? "border-purple-500 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400"
+                    : "border-transparent bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                }`}
+              >
+                Easy to Hard
+              </button>
+              <button
+                onClick={() => setProblemOrder("HardFirst")}
+                className={`py-3 rounded-lg font-medium border-2 transition-all ${
+                  problemOrder === "HardFirst"
+                    ? "border-purple-500 bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400"
+                    : "border-transparent bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                }`}
+              >
+                Hard to Easy
+              </button>
+            </div>
           </div>
         </div>
       </div>

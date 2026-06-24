@@ -1,6 +1,8 @@
 import { db } from "./index";
-import { problems, userStats } from "./schema";
+import { problems, userStats, sqlProblems, sqlPrerequisites } from "./schema";
 import { sql } from "drizzle-orm";
+import { SQL_PROBLEMS, SQL_PREREQUISITES } from "./sqlData";
+
 
 // Grind 169 problem list embedded at build time so no filesystem access needed at runtime
 const PROBLEMS = [
@@ -205,11 +207,48 @@ export async function initDb() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       daily_goal INTEGER NOT NULL DEFAULT 3,
       streak INTEGER NOT NULL DEFAULT 0,
-      last_active_date TEXT
+      last_active_date TEXT,
+      problem_order TEXT NOT NULL DEFAULT 'EasyFirst'
     )
   `);
 
-  // Seed problems (INSERT OR IGNORE so existing user progress is preserved)
+  // Add problem_order column if it doesn't exist (migration for existing DBs)
+  try {
+    await db.run(sql`ALTER TABLE user_stats ADD COLUMN problem_order TEXT NOT NULL DEFAULT 'EasyFirst'`);
+  } catch { /* column already exists */ }
+
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS sql_problems (
+      id INTEGER PRIMARY KEY,
+      title TEXT NOT NULL,
+      difficulty TEXT NOT NULL,
+      topics TEXT NOT NULL,
+      company_tags TEXT,
+      url TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'LeetCode',
+      prerequisite_topics TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      notes TEXT,
+      solve_time INTEGER DEFAULT 0,
+      solved_at TEXT,
+      review_date TEXT,
+      confidence INTEGER
+    )
+  `);
+
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS sql_prerequisites (
+      id INTEGER PRIMARY KEY,
+      topic TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      doc_url TEXT,
+      completed INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+
+  // Seed DSA problems (INSERT OR IGNORE so existing user progress is preserved)
   const rows = PROBLEMS.map((p) => ({
     id: p.id,
     title: p.title,
@@ -223,9 +262,29 @@ export async function initDb() {
 
   await db.insert(problems).values(rows).onConflictDoNothing();
 
+  // Seed SQL problems
+  const sqlRows = SQL_PROBLEMS.map((p) => ({
+    id: p.id,
+    title: p.title,
+    difficulty: p.difficulty as "Easy" | "Medium" | "Hard",
+    topics: [...p.topics] as string[],
+    companyTags: null,
+    url: p.url,
+    source: p.source as "LeetCode" | "DataLemur" | "StratasScratch" | "Conceptual",
+    prerequisiteTopics: [...(p.prerequisiteTopics || [])] as string[],
+    status: p.status as "pending",
+    attempts: p.attempts,
+  }));
+
+  await db.insert(sqlProblems).values(sqlRows).onConflictDoNothing();
+
+  // Seed SQL prerequisites
+  await db.insert(sqlPrerequisites).values(SQL_PREREQUISITES).onConflictDoNothing();
+
   // Seed default user stats if none exist
   const existing = await db.select().from(userStats).limit(1);
   if (existing.length === 0) {
     await db.insert(userStats).values({ dailyGoal: 3, streak: 0 });
   }
 }
+

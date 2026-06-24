@@ -4,7 +4,8 @@ import {
   updateDailyGoal, 
   updateStreak, 
   updateProblemStatus, 
-  markSolvedAction 
+  markSolvedAction,
+  updateProblemOrder
 } from '../app/actions';
 
 const getNextReviewDate = (confidence: ConfidenceLevel): string => {
@@ -26,6 +27,7 @@ interface AppState {
   dailyGoal: number;
   streak: number;
   lastActiveDate: string | null;
+  problemOrder: "EasyFirst" | "HardFirst";
   isInitialized: boolean;
   
   // Initialization
@@ -33,6 +35,7 @@ interface AppState {
 
   // Actions
   setDailyGoal: (goal: number) => Promise<void>;
+  setProblemOrder: (order: "EasyFirst" | "HardFirst") => Promise<void>;
   updateProblem: (id: number, updates: Partial<Problem>) => Promise<void>;
   markSolved: (id: number, timeSpent: number, confidence: ConfidenceLevel, notes?: string) => Promise<void>;
   bookmark: (id: number) => Promise<void>;
@@ -52,6 +55,7 @@ export const useAppStore = create<AppState>()(
     dailyGoal: 3,
     streak: 0,
     lastActiveDate: null,
+    problemOrder: "EasyFirst",
     isInitialized: false,
 
     initStore: (fetchedProblems, fetchedStats) => {
@@ -60,6 +64,7 @@ export const useAppStore = create<AppState>()(
         dailyGoal: fetchedStats?.dailyGoal || 3,
         streak: fetchedStats?.streak || 0,
         lastActiveDate: fetchedStats?.lastActiveDate || null,
+        problemOrder: fetchedStats?.problemOrder || "EasyFirst",
         isInitialized: true
       });
     },
@@ -67,6 +72,11 @@ export const useAppStore = create<AppState>()(
     setDailyGoal: async (goal) => {
       set({ dailyGoal: goal });
       await updateDailyGoal(goal); // Sync to DB
+    },
+
+    setProblemOrder: async (order) => {
+      set({ problemOrder: order });
+      await updateProblemOrder(order); // Sync to DB
     },
 
     updateProblem: async (id, updates) => {
@@ -152,8 +162,15 @@ export const useAppStore = create<AppState>()(
       const explicitReview = state.problems.find(p => p.status === 'review');
       if (explicitReview) return explicitReview;
       
-      const pending = state.problems.find(p => p.status === 'pending');
-      if (pending) return pending;
+      const pendingProblems = state.problems.filter(p => p.status === 'pending');
+      if (pendingProblems.length > 0) {
+        if (state.problemOrder === "HardFirst") {
+          const difficultyRank = { Hard: 1, Medium: 2, Easy: 3 };
+          const sorted = [...pendingProblems].sort((a, b) => difficultyRank[a.difficulty] - difficultyRank[b.difficulty]);
+          return sorted[0];
+        }
+        return pendingProblems[0];
+      }
       
       return null;
     }

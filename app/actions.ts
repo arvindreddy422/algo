@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@/db";
-import { problems, userStats } from "@/db/schema";
+import { problems, userStats, sqlProblems, sqlPrerequisites } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { ConfidenceLevel, Problem } from "@/types";
+import { ConfidenceLevel, Problem, SqlProblem } from "@/types";
 
 export async function getProblems() {
   const result = await db.select().from(problems);
@@ -19,6 +19,13 @@ export async function updateDailyGoal(goal: number) {
   const stats = await getUserStats();
   if (stats) {
     await db.update(userStats).set({ dailyGoal: goal }).where(eq(userStats.id, stats.id));
+  }
+}
+
+export async function updateProblemOrder(order: "EasyFirst" | "HardFirst") {
+  const stats = await getUserStats();
+  if (stats) {
+    await db.update(userStats).set({ problemOrder: order }).where(eq(userStats.id, stats.id));
   }
 }
 
@@ -47,4 +54,38 @@ export async function markSolvedAction(id: number, timeSpent: number, confidence
     confidence,
     notes: notes ?? p.notes
   }).where(eq(problems.id, id));
+}
+
+export async function getSqlProblems() {
+  const result = await db.select().from(sqlProblems);
+  return result;
+}
+
+export async function getSqlPrerequisites() {
+  const result = await db.select().from(sqlPrerequisites);
+  return result;
+}
+
+export async function updateSqlProblemStatus(id: number, updates: Partial<SqlProblem>) {
+  await db.update(sqlProblems).set(updates).where(eq(sqlProblems.id, id));
+}
+
+export async function markSqlSolvedAction(id: number, timeSpent: number, confidence: ConfidenceLevel, notes?: string, nextReview?: string) {
+  const pList = await db.select().from(sqlProblems).where(eq(sqlProblems.id, id));
+  if (pList.length === 0) return;
+  const p = pList[0];
+  
+  await db.update(sqlProblems).set({
+    status: 'solved',
+    attempts: p.attempts + 1,
+    solveTime: (p.solveTime || 0) + timeSpent,
+    solvedAt: new Date().toISOString(),
+    reviewDate: nextReview,
+    confidence,
+    notes: notes ?? p.notes
+  }).where(eq(sqlProblems.id, id));
+}
+
+export async function togglePrerequisite(id: number, completed: boolean) {
+  await db.update(sqlPrerequisites).set({ completed }).where(eq(sqlPrerequisites.id, id));
 }
