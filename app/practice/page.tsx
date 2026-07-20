@@ -31,10 +31,8 @@ interface AtCoderProblem {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CONTESTS_URL =
-  "https://kenkoooo.com/atcoder/resources/contests.json";
-const PROBLEMS_URL =
-  "https://kenkoooo.com/atcoder/resources/contest-problem.json";
+const CONTESTS_URL = "/api/atcoder/contests";
+const PROBLEMS_URL = "/api/atcoder/problems";
 const PER_PAGE = 10;
 
 const CSES_TOPICS = [
