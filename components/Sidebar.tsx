@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Bookmark, CheckCircle, BarChart, Settings, Moon, Sun, RotateCcw, Database, Layers, BookOpen, Search, Rss, HelpCircle, TrendingUp } from "lucide-react";
+import { Home, Bookmark, CheckCircle, BarChart, Settings, Moon, Sun, RotateCcw, Database, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -137,79 +137,19 @@ export function Sidebar() {
         </div>
 
         <div>
-          <div className="px-3 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mt-6">System Design</div>
+          <div className="px-3 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mt-6">Practice Hub</div>
           <div className="space-y-1">
             <Link
-              href="/system-design"
+              href="/practice"
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                pathname === "/system-design"
-                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
+                pathname.startsWith("/practice")
+                  ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50"
                   : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-50"
               )}
             >
-              <Layers className="w-4 h-4" />
-              Today's Challenge
-            </Link>
-            <Link
-              href="/system-design/curriculum"
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                pathname.startsWith("/system-design/curriculum")
-                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
-                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-50"
-              )}
-            >
-              <BookOpen className="w-4 h-4" />
-              Curriculum
-            </Link>
-            <Link
-              href="/system-design/topics"
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                pathname.startsWith("/system-design/topics")
-                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
-                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-50"
-              )}
-            >
-              <Search className="w-4 h-4" />
-              Topic Explorer
-            </Link>
-            <Link
-              href="/system-design/blog-feed"
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                pathname.startsWith("/system-design/blog-feed")
-                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
-                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-50"
-              )}
-            >
-              <Rss className="w-4 h-4" />
-              Blog Feed
-            </Link>
-            <Link
-              href="/system-design/interview-questions"
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                pathname.startsWith("/system-design/interview-questions")
-                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
-                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-50"
-              )}
-            >
-              <HelpCircle className="w-4 h-4" />
-              Q&A Tracker
-            </Link>
-            <Link
-              href="/system-design/progress"
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                pathname.startsWith("/system-design/progress")
-                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
-                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-50"
-              )}
-            >
-              <TrendingUp className="w-4 h-4" />
-              Progress
+              <Globe className="w-4 h-4" />
+              AtCoder / CSES / IB
             </Link>
           </div>
         </div>
