@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Bookmark, CheckCircle, BarChart, Settings, Moon, Sun, RotateCcw, Database, Globe } from "lucide-react";
+import { Home, Bookmark, CheckCircle, BarChart, Settings, Moon, Sun, RotateCcw, Database, Globe, PenLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -150,6 +150,18 @@ export function Sidebar() {
             >
               <Globe className="w-4 h-4" />
               AtCoder / CSES / IB
+            </Link>
+            <Link
+              href="/whiteboard"
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                pathname.startsWith("/whiteboard")
+                  ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50"
+                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-50"
+              )}
+            >
+              <PenLine className="w-4 h-4" />
+              Whiteboard
             </Link>
           </div>
         </div>
