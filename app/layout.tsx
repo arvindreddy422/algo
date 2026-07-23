@@ -42,7 +42,7 @@ export default async function RootLayout({
             stats={stats}
           >
             <Sidebar />
-            <main className="flex-1 overflow-y-auto w-full h-full p-4 md:p-8">
+            <main className="flex-1 overflow-y-auto w-full h-full p-4 md:p-8 pt-[calc(1rem+3.5rem)] md:pt-8">
               <div className="max-w-5xl mx-auto h-full">
                 {children}
               </div>
