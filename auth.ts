@@ -26,8 +26,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         .limit(1);
 
       if (allowed.length === 0) {
-        // Not allowed — redirect to access-denied
-        return "/access-denied";
+        // Not on the allowlist — deny sign in, NextAuth will redirect to pages.error
+        return false;
       }
 
       // Upsert the user record

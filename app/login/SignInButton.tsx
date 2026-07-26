@@ -8,7 +8,10 @@ export function SignInButton() {
 
   const handleSignIn = async () => {
     setLoading(true);
-    await signIn("google", { callbackUrl: "/" });
+    // prompt:"select_account" forces Google to show the account picker
+    // even when only one account is already signed in — essential for
+    // users who have multiple Gmail accounts in their browser.
+    await signIn("google", { callbackUrl: "/" }, { prompt: "select_account" });
   };
 
   return (
