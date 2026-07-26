@@ -13,11 +13,17 @@ export async function proxy(req: NextRequest) {
   }
 
   // Check auth session
-  const session = await auth();
+  try {
+    const session = await auth();
 
-  if (!session) {
+    if (!session) {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  } catch (err) {
+    console.error("Proxy auth error:", err);
     const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 

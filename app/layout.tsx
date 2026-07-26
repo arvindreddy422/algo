@@ -20,12 +20,22 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  await initDb();
-  const session = await auth();
-  const problems = await getProblems();
-  const sqlProblems = await getSqlProblems();
-  const sqlPrerequisites = await getSqlPrerequisites();
-  const stats = await getUserStats();
+  let session = null;
+  let problems: any[] = [];
+  let sqlProblems: any[] = [];
+  let sqlPrerequisites: any[] = [];
+  let stats: any = { dailyGoal: 3, streak: 0 };
+
+  try {
+    await initDb();
+    session = await auth();
+    problems = await getProblems();
+    sqlProblems = await getSqlProblems();
+    sqlPrerequisites = await getSqlPrerequisites();
+    stats = await getUserStats();
+  } catch (err) {
+    console.error("Layout initialization error:", err);
+  }
 
   return (
     <html lang="en" suppressHydrationWarning>
