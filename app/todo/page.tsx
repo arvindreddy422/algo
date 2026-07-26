@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import {
   Plus, Trash2, CheckCircle2, Circle, Link as LinkIcon,
   X, Edit3, Save, ExternalLink, ListTodo, Loader2
@@ -25,8 +23,6 @@ type Todo = {
 const emptyForm = { title: "", description: "", links: [{ label: "", url: "" }] };
 
 export default function TodoPage() {
-  const { status } = useSession();
-  const router = useRouter();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -35,10 +31,6 @@ export default function TodoPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState(emptyForm);
   const [filter, setFilter] = useState<"all" | "active" | "done">("all");
-
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-  }, [status, router]);
 
   const fetchTodos = useCallback(async () => {
     try {
@@ -53,8 +45,8 @@ export default function TodoPage() {
   }, []);
 
   useEffect(() => {
-    if (status === "authenticated") fetchTodos();
-  }, [status, fetchTodos]);
+    fetchTodos();
+  }, [fetchTodos]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const cleanLinks = (links: TodoLink[]) =>
@@ -189,7 +181,7 @@ export default function TodoPage() {
 
   const activeCount = todos.filter((t) => !t.completed).length;
 
-  if (status === "loading" || loading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />

@@ -1,32 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { db } from "@/db";
 import { todos } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 
-async function getCurrentUserId() {
-  const session = await auth();
-  if (!session) return null;
-  return (session.user as any)?.dbId as string | undefined;
-}
+const DEFAULT_USER_ID = "default_user";
 
 export async function GET() {
-  const userId = await getCurrentUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const userTodos = await db
     .select()
     .from(todos)
-    .where(eq(todos.userId, userId))
+    .where(eq(todos.userId, DEFAULT_USER_ID))
     .orderBy(desc(todos.createdAt));
 
   return NextResponse.json(userTodos);
 }
 
 export async function POST(req: NextRequest) {
-  const userId = await getCurrentUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { title, description, links } = await req.json();
   if (!title?.trim()) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -36,7 +25,7 @@ export async function POST(req: NextRequest) {
   const [todo] = await db
     .insert(todos)
     .values({
-      userId,
+      userId: DEFAULT_USER_ID,
       title: title.trim(),
       description: description?.trim() ?? null,
       links: links ?? null,

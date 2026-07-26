@@ -287,37 +287,10 @@ export async function initDb() {
     await db.insert(userStats).values({ dailyGoal: 3, streak: 0 });
   }
 
-  // ── Auth tables ────────────────────────────────────────────────────────────
-  await db.run(sql`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      email TEXT NOT NULL UNIQUE,
-      name TEXT,
-      image TEXT,
-      role TEXT NOT NULL DEFAULT 'user',
-      password_hash TEXT,
-      created_at TEXT NOT NULL
-    )
-  `);
-
-  // Migration: add password_hash column to existing users tables
-  try {
-    await db.run(sql`ALTER TABLE users ADD COLUMN password_hash TEXT`);
-  } catch { /* column already exists */ }
-
-  await db.run(sql`
-    CREATE TABLE IF NOT EXISTS allowed_emails (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT NOT NULL UNIQUE,
-      added_at TEXT NOT NULL,
-      added_by TEXT
-    )
-  `);
-
   await db.run(sql`
     CREATE TABLE IF NOT EXISTS todos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
       title TEXT NOT NULL,
       description TEXT,
       links TEXT,
@@ -326,13 +299,4 @@ export async function initDb() {
       updated_at TEXT NOT NULL
     )
   `);
-
-  // Seed admin email to allowlist (idempotent)
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail) {
-    await db.run(sql`
-      INSERT OR IGNORE INTO allowed_emails (email, added_at, added_by)
-      VALUES (${adminEmail}, ${new Date().toISOString()}, 'system')
-    `);
-  }
 }

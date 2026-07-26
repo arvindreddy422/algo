@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { db } from "@/db";
 import { todos } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
-async function getCurrentUserId() {
-  const session = await auth();
-  if (!session) return null;
-  return (session.user as any)?.dbId as string | undefined;
-}
+const DEFAULT_USER_ID = "default_user";
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const userId = await getCurrentUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id } = await params;
   const body = await req.json();
 
@@ -29,7 +21,7 @@ export async function PATCH(
   const [updated] = await db
     .update(todos)
     .set(updates)
-    .where(and(eq(todos.id, parseInt(id)), eq(todos.userId, userId)))
+    .where(and(eq(todos.id, parseInt(id)), eq(todos.userId, DEFAULT_USER_ID)))
     .returning();
 
   if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -40,14 +32,11 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const userId = await getCurrentUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { id } = await params;
 
   await db
     .delete(todos)
-    .where(and(eq(todos.id, parseInt(id)), eq(todos.userId, userId)));
+    .where(and(eq(todos.id, parseInt(id)), eq(todos.userId, DEFAULT_USER_ID)));
 
   return NextResponse.json({ success: true });
 }
