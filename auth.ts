@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import { db } from "@/db";
 import { users, allowedEmails } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { initDb } from "@/db/init";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -18,6 +19,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const email = user.email?.toLowerCase();
       if (!email) return false;
 
+      // Ensure all tables exist before querying — auth callbacks can run
+      // before the layout's initDb() call (e.g. direct OAuth redirects)
+      await initDb();
+
       // Check if email is on the allowlist
       const allowed = await db
         .select()
@@ -26,7 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         .limit(1);
 
       if (allowed.length === 0) {
-        // Not on the allowlist — deny sign in, NextAuth will redirect to pages.error
+        // Not on the allowlist — deny sign in
         return false;
       }
 
