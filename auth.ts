@@ -1,84 +1,58 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
 import { db } from "@/db";
-import { users, allowedEmails } from "@/db/schema";
+import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { initDb } from "@/db/init";
+import bcrypt from "bcryptjs";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-  callbacks: {
-    async signIn({ user, account }) {
-      if (account?.provider !== "google") return false;
+    Credentials({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
 
-      const email = user.email?.toLowerCase();
-      if (!email) return false;
+        // Ensure tables exist before any query
+        await initDb();
 
-      // Ensure all tables exist before querying — auth callbacks can run
-      // before the layout's initDb() call (e.g. direct OAuth redirects)
-      await initDb();
+        const email = (credentials.email as string).toLowerCase().trim();
 
-      // Check if email is on the allowlist
-      const allowed = await db
-        .select()
-        .from(allowedEmails)
-        .where(eq(allowedEmails.email, email))
-        .limit(1);
-
-      if (allowed.length === 0) {
-        // Not on the allowlist — deny sign in
-        return false;
-      }
-
-      // Upsert the user record
-      const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
-      const role = email === adminEmail ? "admin" : "user";
-      const now = new Date().toISOString();
-
-      const existing = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, email))
-        .limit(1);
-
-      if (existing.length === 0) {
-        await db.insert(users).values({
-          id: user.id ?? email,
-          email,
-          name: user.name ?? null,
-          image: user.image ?? null,
-          role,
-          createdAt: now,
-        });
-      }
-
-      return true;
-    },
-
-    async jwt({ token, user: u, trigger, session }) {
-      if (trigger === "update" && session) {
-        return { ...token, ...session.user };
-      }
-
-      if (u?.email) {
-        const email = u.email.toLowerCase();
-        const dbUser = await db
+        const [user] = await db
           .select()
           .from(users)
           .where(eq(users.email, email))
           .limit(1);
 
-        token.role = dbUser[0]?.role ?? "user";
-        token.dbId = dbUser[0]?.id ?? u.id;
+        if (!user?.passwordHash) return null;
+
+        const valid = await bcrypt.compare(
+          credentials.password as string,
+          user.passwordHash
+        );
+        if (!valid) return null;
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
+      },
+    }),
+  ],
+  session: { strategy: "jwt" },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = (user as any).role ?? "user";
+        token.dbId = user.id;
       }
       return token;
     },
-
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).role = token.role as string;
@@ -89,6 +63,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: {
     signIn: "/login",
-    error: "/access-denied",
+    error: "/login",
   },
 });

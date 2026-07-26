@@ -295,9 +295,15 @@ export async function initDb() {
       name TEXT,
       image TEXT,
       role TEXT NOT NULL DEFAULT 'user',
+      password_hash TEXT,
       created_at TEXT NOT NULL
     )
   `);
+
+  // Migration: add password_hash column to existing users tables
+  try {
+    await db.run(sql`ALTER TABLE users ADD COLUMN password_hash TEXT`);
+  } catch { /* column already exists */ }
 
   await db.run(sql`
     CREATE TABLE IF NOT EXISTS allowed_emails (
@@ -330,4 +336,3 @@ export async function initDb() {
     `);
   }
 }
-

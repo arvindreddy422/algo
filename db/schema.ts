@@ -54,11 +54,12 @@ export const sqlPrerequisites = sqliteTable("sql_prerequisites", {
 });
 
 export const users = sqliteTable("users", {
-  id: text("id").primaryKey(), // Google sub id
+  id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
-  name: text("name"),
+  name: text("name"), // display name / username
   image: text("image"),
   role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
+  passwordHash: text("password_hash"),
   createdAt: text("created_at").notNull(),
 });
 
