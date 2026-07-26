@@ -5,13 +5,14 @@ import { usePathname } from "next/navigation";
 import {
   Home, Bookmark, CheckCircle, BarChart, Settings,
   Moon, Sun, RotateCcw, Database, Globe, PenLine,
-  ChevronLeft, ChevronRight, X,
+  ChevronLeft, ChevronRight, X, ListTodo, Shield, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { useSqlStore } from "@/store/useSqlStore";
+import { useSession, signOut } from "next-auth/react";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
@@ -35,6 +36,8 @@ function NavContent({
   const [mounted, setMounted] = useState(false);
   const { problems } = useAppStore();
   const { sqlProblems } = useSqlStore();
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === "admin";
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -53,10 +56,6 @@ function NavContent({
         ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50"
         : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-50"
     );
-
-  const sectionLabel = collapsed ? null : (
-    <div className="px-3 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider" />
-  );
 
   return (
     <>
@@ -177,16 +176,83 @@ function NavContent({
             ))}
           </div>
         </div>
+
+        {/* Productivity */}
+        <div>
+          {!collapsed && (
+            <div className="px-3 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mt-2">
+              Productivity
+            </div>
+          )}
+          <div className="space-y-1">
+            <Link
+              href="/todo"
+              onClick={onLinkClick}
+              title={collapsed ? "Todo" : undefined}
+              className={cn(linkClass(pathname.startsWith("/todo")), collapsed && "justify-center px-2")}
+            >
+              <ListTodo className="w-4 h-4 flex-shrink-0" />
+              {!collapsed && "Todo"}
+            </Link>
+
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={onLinkClick}
+                title={collapsed ? "Admin" : undefined}
+                className={cn(linkClass(pathname.startsWith("/admin")), collapsed && "justify-center px-2")}
+              >
+                <Shield className="w-4 h-4 flex-shrink-0 text-violet-500" />
+                {!collapsed && <span className="text-violet-600 dark:text-violet-400">Admin</span>}
+              </Link>
+            )}
+          </div>
+        </div>
       </nav>
 
-      {/* Theme toggle */}
-      <div className={cn("mt-auto", collapsed ? "px-3 flex justify-center" : "px-6")}>
+      {/* User profile + theme toggle */}
+      <div className={cn("mt-auto border-t border-gray-100 dark:border-zinc-800 pt-3", collapsed ? "px-3" : "px-4")}>
+        {mounted && session?.user && (
+          <div className={cn("flex items-center gap-2 py-2", collapsed && "justify-center")}>
+            {session.user.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={session.user.image}
+                alt={session.user.name ?? "User"}
+                className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-semibold text-violet-500">
+                  {(session.user.name ?? session.user.email ?? "U").charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            {!collapsed && (
+              <>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium truncate">{session.user.name ?? session.user.email}</div>
+                  {isAdmin && <div className="text-[10px] text-violet-500">Admin</div>}
+                </div>
+                <button
+                  id="signout-btn"
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  title="Sign out"
+                  className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors flex-shrink-0"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         {mounted && (
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             title={collapsed ? (theme === "dark" ? "Light Mode" : "Dark Mode") : undefined}
             className={cn(
-              "flex items-center gap-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors py-2",
+              "flex items-center gap-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors py-2 w-full",
               collapsed && "justify-center"
             )}
           >

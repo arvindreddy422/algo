@@ -286,5 +286,48 @@ export async function initDb() {
   if (existing.length === 0) {
     await db.insert(userStats).values({ dailyGoal: 3, streak: 0 });
   }
+
+  // ── Auth tables ────────────────────────────────────────────────────────────
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      name TEXT,
+      image TEXT,
+      role TEXT NOT NULL DEFAULT 'user',
+      created_at TEXT NOT NULL
+    )
+  `);
+
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS allowed_emails (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      added_at TEXT NOT NULL,
+      added_by TEXT
+    )
+  `);
+
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS todos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      description TEXT,
+      links TEXT,
+      completed INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
+  // Seed admin email to allowlist (idempotent)
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (adminEmail) {
+    await db.run(sql`
+      INSERT OR IGNORE INTO allowed_emails (email, added_at, added_by)
+      VALUES (${adminEmail}, ${new Date().toISOString()}, 'system')
+    `);
+  }
 }
 

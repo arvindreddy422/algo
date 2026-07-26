@@ -53,3 +53,30 @@ export const sqlPrerequisites = sqliteTable("sql_prerequisites", {
   completed: integer("completed", { mode: "boolean" }).notNull().default(false),
 });
 
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(), // Google sub id
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  image: text("image"),
+  role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
+  createdAt: text("created_at").notNull(),
+});
+
+export const allowedEmails = sqliteTable("allowed_emails", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull().unique(),
+  addedAt: text("added_at").notNull(),
+  addedBy: text("added_by"),
+});
+
+export const todos = sqliteTable("todos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  links: text("links", { mode: "json" }).$type<{ label: string; url: string }[]>(),
+  completed: integer("completed", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
