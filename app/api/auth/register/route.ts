@@ -24,13 +24,18 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    console.log("Register API called with email:", normalizedEmail);
 
     // Check if email is on the allowlist
-    const [allowed] = await db
+    const allowedList = await db
       .select()
       .from(allowedEmails)
       .where(eq(allowedEmails.email, normalizedEmail))
       .limit(1);
+    
+    console.log("Allowed list result:", allowedList);
+
+    const allowed = allowedList[0];
 
     if (!allowed) {
       return NextResponse.json(
