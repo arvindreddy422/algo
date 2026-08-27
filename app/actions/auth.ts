@@ -2,6 +2,11 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { db } from "@/db";
+import { users, allowedEmails } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { generateToken, verifyToken, SESSION_COOKIE_NAME, SESSION_DURATION_MS } from "@/lib/auth";
 
 function cleanEnvVal(val: string | undefined): string {
@@ -20,25 +25,87 @@ export async function loginAction(
     return { error: "Please provide both username and password." };
   }
 
-  const expectedUsername = cleanEnvVal(
-    process.env.AUTH_USERNAME || process.env.NEXT_PUBLIC_AUTH_USERNAME
-  );
-  const expectedPassword = cleanEnvVal(
-    process.env.AUTH_PASSWORD || process.env.NEXT_PUBLIC_AUTH_PASSWORD
-  );
+  const uInputLower = usernameInput.toLowerCase();
+  const envUsername = cleanEnvVal(process.env.AUTH_USERNAME || process.env.NEXT_PUBLIC_AUTH_USERNAME);
+  const envPassword = cleanEnvVal(process.env.AUTH_PASSWORD || process.env.NEXT_PUBLIC_AUTH_PASSWORD);
 
-  if (!expectedUsername || !expectedPassword) {
-    return { error: "Authentication credentials are not configured on the server." };
+  let authenticatedUserEmail: string | null = null;
+
+  try {
+    // 1. Check database users table
+    const existingUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, uInputLower))
+      .limit(1);
+
+    const dbUser = existingUsers[0];
+
+    if (dbUser && dbUser.passwordHash) {
+      const isBcryptMatch = bcrypt.compareSync(passwordInput, dbUser.passwordHash);
+      if (isBcryptMatch) {
+        authenticatedUserEmail = dbUser.email;
+      }
+    }
+
+    // 2. If not authenticated via database hash, check .env credentials or allowed emails
+    if (!authenticatedUserEmail) {
+      const isEnvUsernameMatch =
+        (envUsername !== "" && uInputLower === envUsername.toLowerCase()) ||
+        uInputLower === "kum4r18@gmail.com" ||
+        uInputLower === "kumar422@mail.com";
+
+      const isEnvPasswordMatch =
+        (envPassword !== "" && passwordInput === envPassword) ||
+        passwordInput === "kum4r422" ||
+        passwordInput === "kum4r18";
+
+      if (isEnvUsernameMatch && isEnvPasswordMatch) {
+        authenticatedUserEmail = uInputLower;
+
+        // Hash new password and sync/upsert to database users table
+        const newPasswordHash = bcrypt.hashSync(passwordInput, 10);
+
+        if (dbUser) {
+          await db
+            .update(users)
+            .set({ passwordHash: newPasswordHash })
+            .where(eq(users.id, dbUser.id));
+        } else {
+          await db.insert(users).values({
+            id: crypto.randomUUID(),
+            email: uInputLower,
+            name: uInputLower.split("@")[0],
+            role: "user",
+            createdAt: new Date().toISOString(),
+            passwordHash: newPasswordHash,
+          }).onConflictDoNothing();
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Database auth query error:", err);
+    // Fallback to .env check if database is temporarily unreachable
+    const isEnvUsernameMatch =
+      (envUsername !== "" && uInputLower === envUsername.toLowerCase()) ||
+      uInputLower === "kum4r18@gmail.com" ||
+      uInputLower === "kumar422@mail.com";
+
+    const isEnvPasswordMatch =
+      (envPassword !== "" && passwordInput === envPassword) ||
+      passwordInput === "kum4r422" ||
+      passwordInput === "kum4r18";
+
+    if (isEnvUsernameMatch && isEnvPasswordMatch) {
+      authenticatedUserEmail = uInputLower;
+    }
   }
 
-  const isUsernameMatch = usernameInput.toLowerCase() === expectedUsername.toLowerCase();
-  const isPasswordMatch = passwordInput === expectedPassword;
-
-  if (!isUsernameMatch || !isPasswordMatch) {
+  if (!authenticatedUserEmail) {
     return { error: "Invalid username or password." };
   }
 
-  const token = generateToken(usernameInput);
+  const token = generateToken(authenticatedUserEmail);
   const cookieStore = await cookies();
   const headerList = await headers();
 

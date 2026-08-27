@@ -64,3 +64,20 @@ export const todos = sqliteTable("todos", {
   updatedAt: text("updated_at").notNull(),
 });
 
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull(),
+  name: text("name"),
+  image: text("image"),
+  role: text("role").notNull().default("user"),
+  createdAt: text("created_at").notNull(),
+  passwordHash: text("password_hash"),
+});
+
+export const allowedEmails = sqliteTable("allowed_emails", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull(),
+  addedAt: text("added_at").notNull(),
+  addedBy: text("added_by"),
+});
+
