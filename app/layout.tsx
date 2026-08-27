@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { Sidebar } from "@/components/Sidebar";
+import { LayoutShell } from "@/components/LayoutShell";
 import { StoreProvider } from "@/components/StoreProvider";
 import { getProblems, getUserStats, getSqlProblems, getSqlPrerequisites } from "@/app/actions";
 import { initDb } from "@/db/init";
@@ -50,12 +50,7 @@ export default async function RootLayout({
             sqlPrerequisites={sqlPrerequisites as any}
             stats={stats}
           >
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto w-full h-full p-4 md:p-8 pt-[calc(1rem+3.5rem)] md:pt-8">
-              <div className="max-w-5xl mx-auto h-full">
-                {children}
-              </div>
-            </main>
+            <LayoutShell>{children}</LayoutShell>
           </StoreProvider>
         </ThemeProvider>
       </body>

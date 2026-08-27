@@ -12,6 +12,8 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { useSqlStore } from "@/store/useSqlStore";
+import { logoutAction } from "@/app/actions/auth";
+
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: Home },
@@ -195,21 +197,35 @@ function NavContent({
         </div>
       </nav>
 
-      {/* Theme toggle */}
-      <div className={cn("mt-auto border-t border-gray-100 dark:border-zinc-800 pt-3", collapsed ? "px-3" : "px-4")}>
+      {/* Footer controls: Theme toggle & Logout */}
+      <div className={cn("mt-auto border-t border-gray-100 dark:border-zinc-800 pt-3 space-y-1", collapsed ? "px-3" : "px-4")}>
         {mounted && (
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             title={collapsed ? (theme === "dark" ? "Light Mode" : "Dark Mode") : undefined}
             className={cn(
-              "flex items-center gap-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors py-2 w-full",
-              collapsed && "justify-center"
+              "flex items-center gap-3 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors py-2 w-full rounded-md px-2 hover:bg-zinc-100 dark:hover:bg-zinc-800",
+              collapsed && "justify-center px-0"
             )}
           >
-            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {theme === "dark" ? <Sun className="w-4 h-4 flex-shrink-0" /> : <Moon className="w-4 h-4 flex-shrink-0" />}
             {!collapsed && (theme === "dark" ? "Light Mode" : "Dark Mode")}
           </button>
         )}
+
+        <form action={logoutAction} className="w-full">
+          <button
+            type="submit"
+            title={collapsed ? "Logout" : undefined}
+            className={cn(
+              "flex items-center gap-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors py-2 w-full rounded-md px-2",
+              collapsed && "justify-center px-0"
+            )}
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            {!collapsed && "Logout"}
+          </button>
+        </form>
       </div>
     </>
   );
