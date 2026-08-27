@@ -295,8 +295,19 @@ export async function initDb() {
       description TEXT,
       links TEXT,
       completed INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending',
+      priority TEXT NOT NULL DEFAULT 'medium',
+      category TEXT NOT NULL DEFAULT 'General',
+      due_date TEXT,
+      revision_date TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     )
   `);
+
+  try { await db.run(sql`ALTER TABLE todos ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'`); } catch {}
+  try { await db.run(sql`ALTER TABLE todos ADD COLUMN priority TEXT NOT NULL DEFAULT 'medium'`); } catch {}
+  try { await db.run(sql`ALTER TABLE todos ADD COLUMN category TEXT NOT NULL DEFAULT 'General'`); } catch {}
+  try { await db.run(sql`ALTER TABLE todos ADD COLUMN due_date TEXT`); } catch {}
+  try { await db.run(sql`ALTER TABLE todos ADD COLUMN revision_date TEXT`); } catch {}
 }

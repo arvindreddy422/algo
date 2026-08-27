@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, Bookmark, CheckCircle, BarChart, Settings,
   Moon, Sun, RotateCcw, Database, Globe, PenLine,
-  ChevronLeft, ChevronRight, X, ListTodo, Shield, LogOut,
+  ChevronLeft, ChevronRight, X, ListTodo, Shield, LogOut, CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -192,6 +192,15 @@ function NavContent({
             >
               <ListTodo className="w-4 h-4 flex-shrink-0" />
               {!collapsed && "Todo"}
+            </Link>
+            <Link
+              href="/calendar"
+              onClick={onLinkClick}
+              title={collapsed ? "Calendar" : undefined}
+              className={cn(linkClass(pathname.startsWith("/calendar")), collapsed && "justify-center px-2")}
+            >
+              <CalendarDays className="w-4 h-4 flex-shrink-0" />
+              {!collapsed && "Calendar"}
             </Link>
           </div>
         </div>

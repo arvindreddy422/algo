@@ -3,6 +3,12 @@ import type { NextRequest } from "next/server";
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Always allow API routes to pass through — they are self-contained
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
   const sessionCookie = request.cookies.get("auth_session")?.value;
 
   let isAuthenticated = false;
@@ -10,11 +16,9 @@ export default async function proxy(request: NextRequest) {
     const parts = sessionCookie.split(".");
     if (parts.length === 2) {
       try {
-        const base64 = parts[0].replace(/-/g, "+").replace(/_/g, "/");
-        const jsonPayload = typeof atob === "function" 
-          ? atob(base64) 
-          : Buffer.from(base64, "base64").toString("utf-8");
-        const payload = JSON.parse(jsonPayload);
+        // Use base64url decoding (handles email usernames with special chars)
+        const payloadStr = Buffer.from(parts[0], "base64url").toString("utf-8");
+        const payload = JSON.parse(payloadStr);
         const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
         if (payload && typeof payload.timestamp === "number" && Date.now() - payload.timestamp <= SESSION_DURATION_MS) {
           isAuthenticated = true;
