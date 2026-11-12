@@ -3,19 +3,25 @@
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 
-export function LayoutShell({ children }: { children: React.ReactNode }) {
+export function LayoutShell({
+  children,
+  isAdmin,
+}: {
+  children: React.ReactNode;
+  isAdmin: boolean;
+}) {
   const pathname = usePathname();
-  const isLoginPage = pathname === "/login";
+  const isBarePage = pathname === "/login" || pathname === "/change-password";
 
-  if (isLoginPage) {
+  if (isBarePage) {
     return <div className="w-full h-screen overflow-auto">{children}</div>;
   }
 
   return (
     <div className="flex h-screen overflow-hidden w-full">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto w-full h-full p-4 md:p-8 pt-[calc(1rem+3.5rem)] md:pt-8">
-        <div className="max-w-5xl mx-auto h-full">
+      <Sidebar isAdmin={isAdmin} />
+      <main className="flex-1 min-w-0 overflow-y-auto w-full h-full p-4 md:p-6 lg:p-8 pt-[calc(1rem+3.5rem)] md:pt-6 lg:pt-8">
+        <div className="max-w-5xl mx-auto min-w-0">
           {children}
         </div>
       </main>

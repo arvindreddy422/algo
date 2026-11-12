@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Problem, ProblemStatus, ConfidenceLevel } from '../types';
+import { Problem, ConfidenceLevel } from '../types';
 import { 
   updateDailyGoal, 
   updateStreak, 
@@ -7,35 +7,24 @@ import {
   markSolvedAction,
   updateProblemOrder
 } from '../app/actions';
-
-const getNextReviewDate = (confidence: ConfidenceLevel): string => {
-  const daysToAdd = {
-    1: 1,
-    2: 3,
-    3: 7,
-    4: 14,
-    5: 30,
-  }[confidence];
-  
-  const date = new Date();
-  date.setDate(date.getDate() + daysToAdd);
-  return date.toISOString();
-};
+import { pickNextItem, solvedFields, type ProblemOrder } from '@/features/study/schedule';
 
 interface AppState {
   problems: Problem[];
   dailyGoal: number;
   streak: number;
   lastActiveDate: string | null;
-  problemOrder: "EasyFirst" | "HardFirst";
-  isInitialized: boolean;
-  
-  // Initialization
-  initStore: (problems: Problem[], stats: any) => void;
+  problemOrder: ProblemOrder;
+  isProblemsLoaded: boolean;
+  dueCounts: { dsa: number; sql: number };
+
+  initStats: (stats: { dailyGoal?: number; streak?: number; lastActiveDate?: string | null; problemOrder?: ProblemOrder }) => void;
+  initProblems: (problems: Problem[]) => void;
+  setDueCounts: (counts: { dsa: number; sql: number }) => void;
 
   // Actions
   setDailyGoal: (goal: number) => Promise<void>;
-  setProblemOrder: (order: "EasyFirst" | "HardFirst") => Promise<void>;
+  setProblemOrder: (order: ProblemOrder) => Promise<void>;
   updateProblem: (id: number, updates: Partial<Problem>) => Promise<void>;
   markSolved: (id: number, timeSpent: number, confidence: ConfidenceLevel, notes?: string) => Promise<void>;
   bookmark: (id: number) => Promise<void>;
@@ -56,17 +45,24 @@ export const useAppStore = create<AppState>()(
     streak: 0,
     lastActiveDate: null,
     problemOrder: "EasyFirst",
-    isInitialized: false,
+    isProblemsLoaded: false,
+    dueCounts: { dsa: 0, sql: 0 },
 
-    initStore: (fetchedProblems, fetchedStats) => {
-      set({ 
-        problems: fetchedProblems, 
+    initStats: (fetchedStats) => {
+      set({
         dailyGoal: fetchedStats?.dailyGoal || 3,
         streak: fetchedStats?.streak || 0,
         lastActiveDate: fetchedStats?.lastActiveDate || null,
         problemOrder: fetchedStats?.problemOrder || "EasyFirst",
-        isInitialized: true
       });
+    },
+
+    initProblems: (fetchedProblems) => {
+      set({ problems: fetchedProblems, isProblemsLoaded: true });
+    },
+
+    setDueCounts: (counts) => {
+      set({ dueCounts: counts });
     },
 
     setDailyGoal: async (goal) => {
@@ -87,29 +83,15 @@ export const useAppStore = create<AppState>()(
     },
 
     markSolved: async (id, timeSpent, confidence, notes) => {
-      const nextReview = getNextReviewDate(confidence);
-      
-      // Optimistic update
       set((state) => ({
         problems: state.problems.map(p => {
-          if (p.id === id) {
-            return {
-              ...p,
-              status: 'solved',
-              attempts: p.attempts + 1,
-              solveTime: (p.solveTime || 0) + timeSpent,
-              solvedAt: new Date().toISOString(),
-              reviewDate: nextReview,
-              confidence,
-              notes: notes ?? p.notes
-            };
-          }
-          return p;
+          if (p.id !== id) return p;
+          const next = solvedFields(p, timeSpent, confidence, notes);
+          return { ...p, ...next, notes: next.notes ?? undefined };
         })
       }));
 
-      // Async DB write
-      await markSolvedAction(id, timeSpent, confidence, notes, nextReview);
+      await markSolvedAction(id, timeSpent, confidence, notes);
     },
 
     bookmark: async (id) => get().updateProblem(id, { status: 'bookmarked' }),
@@ -148,31 +130,6 @@ export const useAppStore = create<AppState>()(
       }
     },
 
-    getNextProblem: () => {
-      const state = get();
-      const today = new Date();
-      
-      const dueReview = state.problems.find(p => 
-        p.status === 'solved' && 
-        p.reviewDate && 
-        new Date(p.reviewDate).getTime() <= today.getTime()
-      );
-      if (dueReview) return dueReview;
-
-      const explicitReview = state.problems.find(p => p.status === 'review');
-      if (explicitReview) return explicitReview;
-      
-      const pendingProblems = state.problems.filter(p => p.status === 'pending');
-      if (pendingProblems.length > 0) {
-        if (state.problemOrder === "HardFirst") {
-          const difficultyRank = { Hard: 1, Medium: 2, Easy: 3 };
-          const sorted = [...pendingProblems].sort((a, b) => difficultyRank[a.difficulty] - difficultyRank[b.difficulty]);
-          return sorted[0];
-        }
-        return pendingProblems[0];
-      }
-      
-      return null;
-    }
+    getNextProblem: () => pickNextItem(get().problems, get().problemOrder),
   })
 );

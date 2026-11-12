@@ -1,36 +1,177 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DSA Coach
 
-## Getting Started
+A signed-in study app for interview prep. It tracks a Grind 169 algorithms list and a SQL problem set with spaced repetition, and it also holds low-level design notes, a practice hub, a shared daily log, todos, and a whiteboard.
 
-First, run the development server:
+Progress is stored per user. Problem catalogs are shared.
+
+## What you can do
+
+| Area | Routes | What it is |
+| --- | --- | --- |
+| Algorithms | `/`, `/problem/[id]`, `/bookmarks`, `/review`, `/completed`, `/stats`, `/settings` | Grind 169 problems, a daily goal, a streak, and reviews scheduled from how confident you were |
+| SQL | `/sql`, `/sql/problem/[id]`, `/sql/prerequisites`, `/sql/review`, `/sql/bookmarks`, `/sql/completed` | PostgreSQL-style problems (LeetCode, DataLemur, StrataScratch, and short conceptual items) plus a prerequisite checklist |
+| Low-level design | `/lld`, `/lld/oops`, `/lld/solid`, `/lld/patterns`, `/lld/patterns/[slug]` | OOP, SOLID, and 13 design patterns. Lessons are static content in `data/lld`, with Python and Java examples |
+| Practice hub | `/practice`, `/whiteboard` | Links and lists for AtCoder, CSES, and InterviewBit, plus an Excalidraw canvas saved in the browser |
+| Productivity | `/daily`, `/todo`, `/calendar` | A shared daily problem log, personal todos, and a month view of due dates and revisions |
+| Account | `/login`, `/change-password`, `/admin` | Email and password sign-in. Admins can add people and hand them a temporary password |
+
+On a problem, these keys work when focus is not in a text field:
+
+| Key | Action |
+| --- | --- |
+| `S` | Mark solved and pick a confidence level |
+| `1`–`5` | Save that confidence (only after `S`) |
+| `B` | Bookmark and go to the next problem |
+| `R` | Flag for review and go to the next problem |
+| `K` | Skip |
+| `N` | Next problem |
+
+Review gaps are 1, 3, 7, 14, and 30 days for confidence levels 1 through 5. The dashboard serves a due review before a new problem. Settings control the daily goal (default 3) and whether new problems come easiest-first or hardest-first.
+
+## Stack
+
+- [Next.js](https://nextjs.org) 16 (App Router) and React 19
+- Tailwind CSS 4
+- Drizzle ORM with [`@libsql/client`](https://github.com/tursodatabase/libsql-client-ts) (local SQLite file or [Turso](https://turso.tech))
+- Zustand for client study state
+- bcrypt passwords and an HMAC session cookie (`auth_session`, 7 days)
+- `proxy.ts` sends signed-out visitors to `/login`
+
+## Prerequisites
+
+- Node.js 20.9 or newer
+- npm
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create `.env.local` in the project root (see [Environment](#environment)), then:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run seed
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000) and sign in with `AUTH_USERNAME` and `AUTH_PASSWORD`. That first sign-in creates the account. `AUTH_USERNAME` is treated as an admin, so you can open `/admin` and add other people.
 
-## Learn More
+`.env.local` is gitignored. The app and the seed script both load it.
 
-To learn more about Next.js, take a look at the following resources:
+### Environment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# Local SQLite file in the project root. No auth token needed.
+TURSO_DATABASE_URL=file:local.db
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Remote Turso only. Leave unset for a local file.
+# TURSO_AUTH_TOKEN=
 
-## Deploy on Vercel
+# Bootstrap admin. Use an email; it is stored lowercased.
+AUTH_USERNAME=you@example.com
+AUTH_PASSWORD=choose-a-password
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Signs the session cookie. Set this in any shared environment.
+SESSION_SECRET=replace-with-a-long-random-string
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `TURSO_DATABASE_URL` | Yes | Database URL. `file:local.db` for a local file, or a `libsql://` Turso URL |
+| `TURSO_AUTH_TOKEN` | Remote Turso only | Token for that Turso database |
+| `AUTH_USERNAME` | Yes, for the first admin | Email that can sign in before any user row exists, and that is always an admin |
+| `AUTH_PASSWORD` | Yes, for that first sign-in | Password checked when the account has no hash yet. After a successful sign-in the hash is stored |
+| `SESSION_SECRET` | Strongly recommended | HMAC key for the session cookie. If unset, the app falls back to `AUTH_PASSWORD` |
+| `NEXT_PUBLIC_AUTH_USERNAME` | No | Extra email treated as a bootstrap admin, same as `AUTH_USERNAME` |
+
+A new user created from `/admin` gets a temporary password and is sent to `/change-password` on first sign-in.
+
+## Database
+
+Schema lives in `db/schema.ts`. The running app does not apply a checked-in migration folder. `db/init.ts` and `db/progressSchema.ts` create missing tables, add columns that are not there yet, and load the DSA and SQL catalogs. That runs when you seed, and again on sign-in and on admin actions. Re-running it keeps existing progress (`INSERT OR IGNORE` / `onConflictDoNothing`).
+
+### Seed
+
+Creates tables, applies those additive changes, and loads the Grind 169 list, SQL problems, and SQL prerequisites.
+
+```bash
+npm run seed
+```
+
+### Migrate with Drizzle Kit
+
+Use this when you change `db/schema.ts` and want Drizzle Kit to sync or generate SQL. Config is `drizzle.config.ts`. It reads `TURSO_DATABASE_URL` from `.env.local`. Generated files go in `./drizzle` (that folder is not part of the repo today).
+
+```bash
+# Push db/schema.ts straight to the database
+npx drizzle-kit push
+
+# Write SQL migrations into ./drizzle
+npx drizzle-kit generate
+
+# Apply the SQL files in ./drizzle
+npx drizzle-kit migrate
+
+# Browse the database
+npx drizzle-kit studio
+```
+
+Day-to-day setup only needs `npm run seed`. Drizzle Kit does not replace `initDb`: sign-in still runs the additive SQL in `db/init.ts`, which is what creates per-user progress tables and backfills older single-user rows.
+
+### Tables
+
+| Table | Holds |
+| --- | --- |
+| `problems`, `sql_problems`, `sql_prerequisites` | Shared catalogs |
+| `problem_progress`, `sql_problem_progress`, `sql_prerequisite_progress` | Per-user status, notes, solve time, review date, confidence |
+| `user_stats` | Daily goal, streak, last active day, problem order |
+| `users` | Accounts, password hash, role (`admin` or `user`) |
+| `todos` | Personal tasks |
+| `daily_logs` | Shared daily writeups |
+| `allowed_emails` | Declared in the schema; sign-in is account-based |
+
+## Run and build
+
+```bash
+npm run dev      # development server, http://localhost:3000
+npm run lint     # ESLint
+npm run build    # production build
+npm run start    # serve the production build
+```
+
+`build` and `start` need the same environment variables as development. Point `TURSO_DATABASE_URL` at the database that should keep user progress.
+
+## Scripts
+
+| Script | Command |
+| --- | --- |
+| `dev` | `next dev` |
+| `build` | `next build` |
+| `start` | `next start` |
+| `lint` | `eslint` |
+| `seed` | `tsx scripts/seed.ts` |
+
+## Layout
+
+```
+app/                 pages, layouts, and route handlers
+  (dsa)/             algorithms dashboard and problem flow
+  sql/               SQL practice
+  lld/               low-level design pages
+  api/               todos, daily logs, AtCoder proxies
+  actions/           auth and user admin
+  login, change-password, admin, daily, todo, calendar, practice, whiteboard
+components/          shell, sidebar, admin, whiteboard, LLD lesson UI
+data/lld/            OOP, SOLID, and pattern lessons
+data/grind169.json   source list mirrored by the embedded catalog in db/init.ts
+db/                  Drizzle schema, libsql client, runtime schema setup, SQL catalog
+features/            sidebar nav and shared study UI
+lib/                 session cookie, auth, daily-log queries
+scripts/seed.ts      one-shot seed and schema setup
+store/               Zustand stores for DSA and SQL progress
+drizzle.config.ts    Drizzle Kit config
+proxy.ts             redirects unsigned requests to /login
+```
+
+Imports use the `@/` alias, which maps to the repo root (`tsconfig.json`).

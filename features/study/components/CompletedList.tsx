@@ -1,32 +1,58 @@
 "use client";
 
-import { useAppStore } from "@/store/useAppStore";
-import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
+import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { CheckCircle2 } from "lucide-react";
-import Link from "next/link";
+import type { Difficulty, ProblemStatus } from "@/types";
+import { DifficultyBadge } from "@/features/study/components/DifficultyBadge";
+import { useMounted } from "@/features/study/components/BookmarkList";
 
-export default function CompletedPage() {
-  const { problems } = useAppStore();
-  const [mounted, setMounted] = useState(false);
+type CompletedItem = {
+  id: number;
+  title: string;
+  difficulty: Difficulty;
+  status: ProblemStatus;
+  solveTime?: number;
+  confidence?: number;
+  solvedAt?: string;
+  source?: string;
+};
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+type CompletedListProps = {
+  items: CompletedItem[];
+  title: string;
+  description: string;
+  emptyTitle: string;
+  emptyBody: string;
+  emptyAction: string;
+  homeHref: string;
+  problemHref: (id: number) => string;
+};
 
+export function CompletedList({
+  items,
+  title,
+  description,
+  emptyTitle,
+  emptyBody,
+  emptyAction,
+  homeHref,
+  problemHref,
+}: CompletedListProps) {
+  const mounted = useMounted();
   if (!mounted) return <div className="p-8 animate-pulse">Loading...</div>;
 
-  const completed = problems
-    .filter((p) => p.status === "solved" || p.status === "review")
+  const completed = items
+    .filter((item) => item.status === "solved" || item.status === "review")
     .sort((a, b) => new Date(b.solvedAt || 0).getTime() - new Date(a.solvedAt || 0).getTime());
+  const showSource = completed.some((item) => item.source);
 
   return (
     <div className="py-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl">
       <header className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-1">Completed</h1>
-          <p className="text-zinc-500 dark:text-zinc-400">Everything you've successfully solved.</p>
+          <h1 className="text-3xl font-bold tracking-tight mb-1">{title}</h1>
+          <p className="text-zinc-500 dark:text-zinc-400">{description}</p>
         </div>
         <div className="bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 px-4 py-2 rounded-lg font-semibold flex items-center gap-2">
           <CheckCircle2 className="w-5 h-5" />
@@ -39,10 +65,10 @@ export default function CompletedPage() {
           <div className="bg-zinc-100 dark:bg-zinc-800 p-4 rounded-full mb-4">
             <CheckCircle2 className="w-8 h-8 text-zinc-400" />
           </div>
-          <h3 className="font-semibold text-lg mb-1">No completed problems yet</h3>
-          <p className="text-zinc-500 dark:text-zinc-400 mb-6">Head to the dashboard to start solving some problems.</p>
-          <Link href="/" className="bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 px-6 py-2.5 rounded-lg font-medium transition hover:scale-[1.02]">
-            Start Solving
+          <h3 className="font-semibold text-lg mb-1">{emptyTitle}</h3>
+          <p className="text-zinc-500 dark:text-zinc-400 mb-6">{emptyBody}</p>
+          <Link href={homeHref} className="bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 px-6 py-2.5 rounded-lg font-medium transition hover:scale-[1.02]">
+            {emptyAction}
           </Link>
         </div>
       ) : (
@@ -52,6 +78,7 @@ export default function CompletedPage() {
               <tr>
                 <th className="px-6 py-3 font-medium text-zinc-500 dark:text-zinc-400">Problem</th>
                 <th className="px-6 py-3 font-medium text-zinc-500 dark:text-zinc-400">Difficulty</th>
+                {showSource && <th className="px-6 py-3 font-medium text-zinc-500 dark:text-zinc-400">Source</th>}
                 <th className="px-6 py-3 font-medium text-zinc-500 dark:text-zinc-400">Time Spent</th>
                 <th className="px-6 py-3 font-medium text-zinc-500 dark:text-zinc-400">Confidence</th>
                 <th className="px-6 py-3 font-medium text-zinc-500 dark:text-zinc-400 text-right">Solved</th>
@@ -61,28 +88,30 @@ export default function CompletedPage() {
               {completed.map((problem) => (
                 <tr key={problem.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
                   <td className="px-6 py-4">
-                    <Link href={`/problem/${problem.id}`} className="font-medium hover:text-blue-500 transition line-clamp-1">
+                    <Link href={problemHref(problem.id)} className="font-medium hover:text-blue-500 transition line-clamp-1">
                       {problem.title}
                     </Link>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={cn(
-                      "text-[10px] px-2 py-0.5 rounded-full font-medium border uppercase tracking-wider",
-                      problem.difficulty === 'Easy' ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20" :
-                      problem.difficulty === 'Medium' ? "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20" :
-                      "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"
-                    )}>
-                      {problem.difficulty}
-                    </span>
+                    <DifficultyBadge difficulty={problem.difficulty} compact />
                   </td>
+                  {showSource && (
+                    <td className="px-6 py-4">
+                      {problem.source ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium border border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20 uppercase tracking-wider">
+                          {problem.source}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                  )}
                   <td className="px-6 py-4 text-zinc-500">
-                    {problem.solveTime ? `${Math.floor(problem.solveTime / 60)}m ${problem.solveTime % 60}s` : '-'}
+                    {problem.solveTime ? `${Math.floor(problem.solveTime / 60)}m ${problem.solveTime % 60}s` : "-"}
                   </td>
-                  <td className="px-6 py-4 text-zinc-500">
-                    {problem.confidence ? `${problem.confidence}/5` : '-'}
-                  </td>
+                  <td className="px-6 py-4 text-zinc-500">{problem.confidence ? `${problem.confidence}/5` : "-"}</td>
                   <td className="px-6 py-4 text-right text-zinc-500 whitespace-nowrap">
-                    {problem.solvedAt ? formatDistanceToNow(new Date(problem.solvedAt), { addSuffix: true }) : '-'}
+                    {problem.solvedAt ? formatDistanceToNow(new Date(problem.solvedAt), { addSuffix: true }) : "-"}
                   </td>
                 </tr>
               ))}

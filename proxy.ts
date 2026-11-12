@@ -1,46 +1,35 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { SESSION_COOKIE_NAME } from "@/lib/auth";
+import { getSessionUser } from "@/lib/sessionUser";
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const user = await getSessionUser(request.cookies.get(SESSION_COOKIE_NAME)?.value ?? null);
 
-  // Always allow API routes to pass through — they are self-contained
   if (pathname.startsWith("/api/")) {
+    if (user?.mustChangePassword) {
+      return NextResponse.json(
+        { error: "Set your password before continuing." },
+        { status: 403 }
+      );
+    }
     return NextResponse.next();
   }
 
-  const sessionCookie = request.cookies.get("auth_session")?.value;
-
-  let isAuthenticated = false;
-  if (sessionCookie) {
-    const parts = sessionCookie.split(".");
-    if (parts.length === 2) {
-      try {
-        // Use base64url decoding (handles email usernames with special chars)
-        const payloadStr = Buffer.from(parts[0], "base64url").toString("utf-8");
-        const payload = JSON.parse(payloadStr);
-        const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
-        if (payload && typeof payload.timestamp === "number" && Date.now() - payload.timestamp <= SESSION_DURATION_MS) {
-          isAuthenticated = true;
-        }
-      } catch {
-        isAuthenticated = false;
-      }
-    }
-  }
-
   const isLoginPage = pathname === "/login";
+  const isPasswordPage = pathname === "/change-password";
 
-  // Redirect unauthenticated requests to /login
-  if (!isAuthenticated && !isLoginPage) {
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
+  if (!user && !isLoginPage) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Redirect authenticated requests from /login to /
-  if (isAuthenticated && isLoginPage) {
-    const homeUrl = new URL("/", request.url);
-    return NextResponse.redirect(homeUrl);
+  if (user?.mustChangePassword && !isPasswordPage) {
+    return NextResponse.redirect(new URL("/change-password", request.url));
+  }
+
+  if (user && !user.mustChangePassword && (isLoginPage || isPasswordPage)) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();

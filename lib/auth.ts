@@ -9,15 +9,39 @@ function getSecretKey(): string {
   return process.env.SESSION_SECRET || process.env.AUTH_PASSWORD || "dsa_companion_default_secret_key";
 }
 
+function cleanEnvVal(val: string | undefined): string {
+  if (!val) return "";
+  return val.replace(/^["']|["']$/g, "").trim().toLowerCase();
+}
+
+/** Accounts that should always be able to open the admin page. */
+export function bootstrapAdminEmails(): string[] {
+  const emails = new Set<string>();
+  for (const value of [
+    process.env.AUTH_USERNAME,
+    process.env.NEXT_PUBLIC_AUTH_USERNAME,
+    "kum4r18@gmail.com",
+    "kumar422@mail.com",
+  ]) {
+    const cleaned = cleanEnvVal(value);
+    if (cleaned) emails.add(cleaned);
+  }
+  return [...emails];
+}
+
+export function isBootstrapAdmin(email: string): boolean {
+  return bootstrapAdminEmails().includes(email.trim().toLowerCase());
+}
+
 /**
  * Encodes payload into base64url and attaches HMAC signature:
- * token = <base64url(JSON({username, timestamp}))>.<signature>
+ * token = <base64url(JSON({username, timestamp, mustChangePassword}))>.<signature>
  */
-export function generateToken(username: string): string {
+export function generateToken(username: string, mustChangePassword = false): string {
   const timestamp = Date.now();
   const secret = getSecretKey();
   
-  const payloadObj = { username, timestamp };
+  const payloadObj = { username, timestamp, mustChangePassword };
   const payloadStr = JSON.stringify(payloadObj);
   const encodedPayload = Buffer.from(payloadStr, "utf-8").toString("base64url");
   
@@ -29,7 +53,7 @@ export function generateToken(username: string): string {
   return `${encodedPayload}.${signature}`;
 }
 
-export function verifyToken(token: string | undefined): { username: string } | null {
+export function verifyToken(token: string | undefined): { username: string; mustChangePassword: boolean } | null {
   if (!token) return null;
   
   const parts = token.split(".");
@@ -66,7 +90,10 @@ export function verifyToken(token: string | undefined): { username: string } | n
       return null;
     }
     
-    return { username: payload.username };
+    return {
+      username: payload.username,
+      mustChangePassword: payload.mustChangePassword === true,
+    };
   } catch {
     return null;
   }

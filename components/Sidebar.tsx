@@ -3,54 +3,42 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Bookmark, CheckCircle, BarChart, Settings,
-  Moon, Sun, RotateCcw, Database, Globe, PenLine,
-  ChevronLeft, ChevronRight, X, ListTodo, Shield, LogOut, CalendarDays,
+  Moon, Sun, ChevronLeft, ChevronRight, X, LogOut, Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { useSqlStore } from "@/store/useSqlStore";
+import { countDue } from "@/features/study/schedule";
+import { isNavItemActive, navGroups } from "@/features/nav";
 import { logoutAction } from "@/app/actions/auth";
 
-
-const navItems = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "Bookmarks", href: "/bookmarks", icon: Bookmark },
-  { name: "Review", href: "/review", icon: RotateCcw },
-  { name: "Completed", href: "/completed", icon: CheckCircle },
-  { name: "Statistics", href: "/stats", icon: BarChart },
-  { name: "Settings", href: "/settings", icon: Settings },
-];
-
-// ─── Shared nav content (used by both desktop & mobile drawers) ───────────────
 function NavContent({
   collapsed,
+  isAdmin,
   onLinkClick,
 }: {
   collapsed: boolean;
+  isAdmin: boolean;
   onLinkClick?: () => void;
 }) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const { problems } = useAppStore();
-  const { sqlProblems } = useSqlStore();
+  const { problems, isProblemsLoaded, dueCounts } = useAppStore();
+  const { sqlProblems, isInitialized: sqlLoaded } = useSqlStore();
 
   useEffect(() => { setMounted(true); }, []);
 
-  const now = new Date();
-  const dueReviewCount = problems.filter(
-    (p) => p.status === "solved" && p.reviewDate && new Date(p.reviewDate).getTime() <= now.getTime()
-  ).length;
-  const dueSqlReviewCount = sqlProblems.filter(
-    (p) => p.status === "solved" && p.reviewDate && new Date(p.reviewDate).getTime() <= now.getTime()
-  ).length;
+  const badges = {
+    "dsa-review": isProblemsLoaded ? countDue(problems) : dueCounts.dsa,
+    "sql-review": sqlLoaded ? countDue(sqlProblems) : dueCounts.sql,
+  };
 
   const linkClass = (active: boolean) =>
     cn(
-      "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+      "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors relative",
       active
         ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50"
         : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-50"
@@ -58,7 +46,6 @@ function NavContent({
 
   return (
     <>
-      {/* Logo */}
       <div className={cn("mb-8 flex items-center gap-2", collapsed ? "px-3 justify-center" : "px-6")}>
         <div className="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-white flex items-center justify-center flex-shrink-0">
           <span className="text-white dark:text-zinc-900 font-bold font-mono">D</span>
@@ -68,146 +55,60 @@ function NavContent({
         )}
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-3 space-y-6 overflow-y-auto pb-4">
-        {/* Algorithms */}
-        <div>
-          {!collapsed && (
-            <div className="px-3 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-              Algorithms
-            </div>
-          )}
-          <div className="space-y-1">
-            {navItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/" && pathname.startsWith(item.href) && !pathname.startsWith("/sql"));
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onLinkClick}
-                  title={collapsed ? item.name : undefined}
-                  className={cn(linkClass(isActive), collapsed && "justify-center px-2")}
-                >
-                  <item.icon className="w-4 h-4 flex-shrink-0" />
-                  {!collapsed && (
-                    <>
-                      {item.name}
-                      {item.name === "Review" && dueReviewCount > 0 && (
-                        <span className="ml-auto text-[10px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400 px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                          {dueReviewCount}
-                        </span>
-                      )}
-                    </>
-                  )}
-                  {collapsed && item.name === "Review" && dueReviewCount > 0 && (
-                    <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-purple-500" />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Databases */}
-        <div>
-          {!collapsed && (
-            <div className="px-3 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-              Databases
-            </div>
-          )}
-          <div className="space-y-1">
-            {[
-              { href: "/sql", label: "SQL Practice", icon: Database, active: pathname === "/sql" || pathname.startsWith("/sql/problem") || pathname === "/sql/prerequisites" },
-              { href: "/sql/review", label: "SQL Review", icon: RotateCcw, active: pathname.startsWith("/sql/review"), badge: dueSqlReviewCount },
-              { href: "/sql/bookmarks", label: "SQL Bookmarks", icon: Bookmark, active: pathname.startsWith("/sql/bookmarks") },
-              { href: "/sql/completed", label: "SQL Completed", icon: CheckCircle, active: pathname.startsWith("/sql/completed") },
-            ].map(({ href, label, icon: Icon, active, badge }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={onLinkClick}
-                title={collapsed ? label : undefined}
-                className={cn(linkClass(active), collapsed && "justify-center px-2", "relative")}
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                {!collapsed && (
-                  <>
-                    {label}
-                    {badge != null && badge > 0 && (
-                      <span className="ml-auto text-[10px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400 px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                        {badge}
-                      </span>
+        {navGroups.map((group) => (
+          <div key={group.label}>
+            {!collapsed && (
+              <div className="px-3 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                {group.label}
+              </div>
+            )}
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = isNavItemActive(item, pathname);
+                const badge = item.badge ? badges[item.badge] : 0;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onLinkClick}
+                    title={collapsed ? item.name : undefined}
+                    className={cn(linkClass(active), collapsed && "justify-center px-2")}
+                  >
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    {!collapsed && (
+                      <>
+                        {item.name}
+                        {badge > 0 && (
+                          <span className="ml-auto text-[10px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400 px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                            {badge}
+                          </span>
+                        )}
+                      </>
                     )}
-                  </>
-                )}
-                {collapsed && badge != null && badge > 0 && (
-                  <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-purple-500" />
-                )}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {/* Practice Hub */}
-        <div>
-          {!collapsed && (
-            <div className="px-3 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mt-6">
-              Practice Hub
+                    {collapsed && badge > 0 && (
+                      <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-purple-500" />
+                    )}
+                  </Link>
+                );
+              })}
             </div>
-          )}
-          <div className="space-y-1">
-            {[
-              { href: "/practice", label: "AtCoder / CSES / IB", icon: Globe, active: pathname.startsWith("/practice") },
-              { href: "/whiteboard", label: "Whiteboard", icon: PenLine, active: pathname.startsWith("/whiteboard") },
-            ].map(({ href, label, icon: Icon, active }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={onLinkClick}
-                title={collapsed ? label : undefined}
-                className={cn(linkClass(active), collapsed && "justify-center px-2")}
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                {!collapsed && label}
-              </Link>
-            ))}
           </div>
-        </div>
-
-        {/* Productivity */}
-        <div>
-          {!collapsed && (
-            <div className="px-3 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mt-2">
-              Productivity
-            </div>
-          )}
-          <div className="space-y-1">
-            <Link
-              href="/todo"
-              onClick={onLinkClick}
-              title={collapsed ? "Todo" : undefined}
-              className={cn(linkClass(pathname.startsWith("/todo")), collapsed && "justify-center px-2")}
-            >
-              <ListTodo className="w-4 h-4 flex-shrink-0" />
-              {!collapsed && "Todo"}
-            </Link>
-            <Link
-              href="/calendar"
-              onClick={onLinkClick}
-              title={collapsed ? "Calendar" : undefined}
-              className={cn(linkClass(pathname.startsWith("/calendar")), collapsed && "justify-center px-2")}
-            >
-              <CalendarDays className="w-4 h-4 flex-shrink-0" />
-              {!collapsed && "Calendar"}
-            </Link>
-          </div>
-        </div>
+        ))}
       </nav>
 
-      {/* Footer controls: Theme toggle & Logout */}
       <div className={cn("mt-auto border-t border-gray-100 dark:border-zinc-800 pt-3 space-y-1", collapsed ? "px-3" : "px-4")}>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={onLinkClick}
+            title={collapsed ? "Admin" : undefined}
+            className={cn(linkClass(pathname.startsWith("/admin")), collapsed && "justify-center px-2")}
+          >
+            <Shield className="w-4 h-4 flex-shrink-0" />
+            {!collapsed && "Admin"}
+          </Link>
+        )}
         {mounted && (
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -240,16 +141,13 @@ function NavContent({
   );
 }
 
-// ─── Main Sidebar export ──────────────────────────────────────────────────────
-export function Sidebar() {
+export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
-  // Auto-close mobile drawer on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); };
     document.addEventListener("keydown", handler);
@@ -258,7 +156,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* ── Mobile: top bar with hamburger ──────────────────────────── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center gap-3 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800">
         <button
           onClick={() => setMobileOpen(true)}
@@ -277,7 +174,6 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* ── Mobile: backdrop ─────────────────────────────────────────── */}
       {mobileOpen && (
         <div
           className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
@@ -285,14 +181,12 @@ export function Sidebar() {
         />
       )}
 
-      {/* ── Mobile: slide-in drawer ──────────────────────────────────── */}
       <div
         className={cn(
           "md:hidden fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-zinc-900 flex flex-col pt-6 pb-4 shadow-2xl transition-transform duration-300",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Close button */}
         <button
           onClick={() => setMobileOpen(false)}
           aria-label="Close menu"
@@ -300,19 +194,17 @@ export function Sidebar() {
         >
           <X className="w-4 h-4" />
         </button>
-        <NavContent collapsed={false} onLinkClick={() => setMobileOpen(false)} />
+        <NavContent collapsed={false} isAdmin={isAdmin} onLinkClick={() => setMobileOpen(false)} />
       </div>
 
-      {/* ── Desktop: persistent sidebar ──────────────────────────────── */}
       <div
         className={cn(
           "hidden md:flex flex-col h-full border-r border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 pt-6 pb-4 relative transition-all duration-300 ease-in-out",
           collapsed ? "w-16" : "w-64"
         )}
       >
-        <NavContent collapsed={collapsed} />
+        <NavContent collapsed={collapsed} isAdmin={isAdmin} />
 
-        {/* Toggle arrow */}
         <button
           onClick={() => setCollapsed((c) => !c)}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}

@@ -3,8 +3,9 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { LayoutShell } from "@/components/LayoutShell";
 import { StoreProvider } from "@/components/StoreProvider";
-import { getProblems, getUserStats, getSqlProblems, getSqlPrerequisites } from "@/app/actions";
-import { initDb } from "@/db/init";
+import { getDueCounts, getUserStats } from "@/app/actions";
+import { getSessionUser } from "@/lib/sessionUser";
+import type { ProblemOrder } from "@/features/study/schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -13,22 +14,30 @@ export const metadata: Metadata = {
   description: "A distraction-free spaced repetition companion for DSA preparation.",
 };
 
+const emptyStats = {
+  dailyGoal: 3,
+  streak: 0,
+  lastActiveDate: null as string | null,
+  problemOrder: "EasyFirst" as ProblemOrder,
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let problems: any[] = [];
-  let sqlProblems: any[] = [];
-  let sqlPrerequisites: any[] = [];
-  let stats: any = { dailyGoal: 3, streak: 0 };
+  let stats = emptyStats;
+  let dueCounts = { dsa: 0, sql: 0 };
+  let isAdmin = false;
 
   try {
-    await initDb();
-    problems = await getProblems();
-    sqlProblems = await getSqlProblems();
-    sqlPrerequisites = await getSqlPrerequisites();
-    stats = await getUserStats();
+    const me = await getSessionUser();
+    isAdmin = me?.role === "admin";
+    if (me) {
+      const [loadedStats, loadedCounts] = await Promise.all([getUserStats(), getDueCounts()]);
+      stats = loadedStats;
+      dueCounts = loadedCounts;
+    }
   } catch (err) {
     console.error("Layout initialization error:", err);
   }
@@ -44,13 +53,8 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <StoreProvider
-            problems={problems as any}
-            sqlProblems={sqlProblems as any}
-            sqlPrerequisites={sqlPrerequisites as any}
-            stats={stats}
-          >
-            <LayoutShell>{children}</LayoutShell>
+          <StoreProvider stats={stats} dueCounts={dueCounts}>
+            <LayoutShell isAdmin={isAdmin}>{children}</LayoutShell>
           </StoreProvider>
         </ThemeProvider>
       </body>

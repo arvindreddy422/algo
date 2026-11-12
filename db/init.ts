@@ -1,7 +1,9 @@
 import { db } from "./index";
-import { problems, userStats, sqlProblems, sqlPrerequisites } from "./schema";
-import { sql } from "drizzle-orm";
+import { problems, userStats, sqlProblems, sqlPrerequisites, users } from "./schema";
+import { inArray, sql } from "drizzle-orm";
 import { SQL_PROBLEMS, SQL_PREREQUISITES } from "./sqlData";
+import { bootstrapAdminEmails } from "@/lib/auth";
+import { ensureProgressSchema } from "./progressSchema";
 
 
 // Grind 169 problem list embedded at build time so no filesystem access needed at runtime
@@ -178,8 +180,42 @@ const PROBLEMS = [
 ] as const;
 
 let initialized = false;
+let userSchemaReady = false;
+
+async function ensureUserAuthColumns() {
+  if (userSchemaReady) return;
+
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      name TEXT,
+      image TEXT,
+      role TEXT NOT NULL DEFAULT 'user',
+      created_at TEXT NOT NULL,
+      password_hash TEXT,
+      must_change_password INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+
+  try {
+    await db.run(sql`ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0`);
+  } catch { /* column already exists */ }
+
+  try {
+    await db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON users (email)`);
+  } catch { /* duplicates or index already present */ }
+
+  const owners = bootstrapAdminEmails();
+  if (owners.length > 0) {
+    await db.update(users).set({ role: "admin" }).where(inArray(users.email, owners));
+  }
+
+  userSchemaReady = true;
+}
 
 export async function initDb() {
+  await ensureUserAuthColumns();
   if (initialized) return;
   initialized = true;
 
@@ -281,6 +317,8 @@ export async function initDb() {
   // Seed SQL prerequisites
   await db.insert(sqlPrerequisites).values(SQL_PREREQUISITES).onConflictDoNothing();
 
+  await ensureProgressSchema();
+
   // Seed default user stats if none exist
   const existing = await db.select().from(userStats).limit(1);
   if (existing.length === 0) {
@@ -310,4 +348,67 @@ export async function initDb() {
   try { await db.run(sql`ALTER TABLE todos ADD COLUMN category TEXT NOT NULL DEFAULT 'General'`); } catch {}
   try { await db.run(sql`ALTER TABLE todos ADD COLUMN due_date TEXT`); } catch {}
   try { await db.run(sql`ALTER TABLE todos ADD COLUMN revision_date TEXT`); } catch {}
+
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS daily_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      url TEXT,
+      approach TEXT NOT NULL,
+      notes TEXT,
+      difficulty TEXT,
+      topic TEXT,
+      log_date TEXT NOT NULL,
+      added_by TEXT NOT NULL,
+      updated_by TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
+  await db.run(sql`
+    CREATE INDEX IF NOT EXISTS daily_logs_log_date_idx ON daily_logs (log_date)
+  `);
+
+  await copyLegacyProgress();
+}
+
+async function copyLegacyProgress() {
+  let userId: string | undefined;
+  try {
+    const existingUsers = await db.select({ id: users.id }).from(users).limit(1);
+    userId = existingUsers[0]?.id;
+  } catch {
+    return;
+  }
+  if (!userId) return;
+
+  await db.run(sql`
+    INSERT OR IGNORE INTO problem_progress (user_id, problem_id, status, attempts, notes, solve_time, solved_at, review_date, confidence)
+    SELECT ${userId}, id, status, attempts, notes, solve_time, solved_at, review_date, confidence
+    FROM problems
+    WHERE status != 'pending'
+       OR ifnull(attempts, 0) > 0
+       OR notes IS NOT NULL
+       OR solved_at IS NOT NULL
+       OR review_date IS NOT NULL
+  `);
+
+  await db.run(sql`
+    INSERT OR IGNORE INTO sql_problem_progress (user_id, problem_id, status, attempts, notes, solve_time, solved_at, review_date, confidence)
+    SELECT ${userId}, id, status, attempts, notes, solve_time, solved_at, review_date, confidence
+    FROM sql_problems
+    WHERE status != 'pending'
+       OR ifnull(attempts, 0) > 0
+       OR notes IS NOT NULL
+       OR solved_at IS NOT NULL
+       OR review_date IS NOT NULL
+  `);
+
+  await db.run(sql`
+    INSERT OR IGNORE INTO sql_prerequisite_progress (user_id, prerequisite_id, completed)
+    SELECT ${userId}, id, completed FROM sql_prerequisites WHERE completed = 1
+  `);
+
+  await db.run(sql`UPDATE user_stats SET user_id = ${userId} WHERE user_id IS NULL`);
 }

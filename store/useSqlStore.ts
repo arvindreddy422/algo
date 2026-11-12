@@ -5,20 +5,7 @@ import {
   markSqlSolvedAction,
   togglePrerequisite
 } from '../app/actions';
-
-const getNextReviewDate = (confidence: ConfidenceLevel): string => {
-  const daysToAdd = {
-    1: 1,
-    2: 3,
-    3: 7,
-    4: 14,
-    5: 30,
-  }[confidence];
-  
-  const date = new Date();
-  date.setDate(date.getDate() + daysToAdd);
-  return date.toISOString();
-};
+import { pickNextItem, solvedFields, type ProblemOrder } from '@/features/study/schedule';
 
 interface SqlState {
   sqlProblems: SqlProblem[];
@@ -40,7 +27,7 @@ interface SqlState {
   togglePrerequisiteStatus: (id: number, completed: boolean) => Promise<void>;
   
   // Getters
-  getNextSqlProblem: (problemOrder: "EasyFirst" | "HardFirst") => SqlProblem | null;
+  getNextSqlProblem: (problemOrder: ProblemOrder) => SqlProblem | null;
 }
 
 export const useSqlStore = create<SqlState>()(
@@ -65,29 +52,15 @@ export const useSqlStore = create<SqlState>()(
     },
 
     markSqlSolved: async (id, timeSpent, confidence, notes) => {
-      const nextReview = getNextReviewDate(confidence);
-      
-      // Optimistic update
       set((state) => ({
         sqlProblems: state.sqlProblems.map(p => {
-          if (p.id === id) {
-            return {
-              ...p,
-              status: 'solved',
-              attempts: p.attempts + 1,
-              solveTime: (p.solveTime || 0) + timeSpent,
-              solvedAt: new Date().toISOString(),
-              reviewDate: nextReview,
-              confidence,
-              notes: notes ?? p.notes
-            };
-          }
-          return p;
+          if (p.id !== id) return p;
+          const next = solvedFields(p, timeSpent, confidence, notes);
+          return { ...p, ...next, notes: next.notes ?? undefined };
         })
       }));
 
-      // Async DB write
-      await markSqlSolvedAction(id, timeSpent, confidence, notes, nextReview);
+      await markSqlSolvedAction(id, timeSpent, confidence, notes);
     },
 
     bookmarkSql: async (id) => get().updateSqlProblem(id, { status: 'bookmarked' }),
@@ -103,31 +76,6 @@ export const useSqlStore = create<SqlState>()(
       await togglePrerequisite(id, completed);
     },
 
-    getNextSqlProblem: (problemOrder) => {
-      const state = get();
-      const today = new Date();
-      
-      const dueReview = state.sqlProblems.find(p => 
-        p.status === 'solved' && 
-        p.reviewDate && 
-        new Date(p.reviewDate).getTime() <= today.getTime()
-      );
-      if (dueReview) return dueReview;
-
-      const explicitReview = state.sqlProblems.find(p => p.status === 'review');
-      if (explicitReview) return explicitReview;
-      
-      const pendingProblems = state.sqlProblems.filter(p => p.status === 'pending');
-      if (pendingProblems.length > 0) {
-        if (problemOrder === "HardFirst") {
-          const difficultyRank = { Hard: 1, Medium: 2, Easy: 3 };
-          const sorted = [...pendingProblems].sort((a, b) => difficultyRank[a.difficulty] - difficultyRank[b.difficulty]);
-          return sorted[0];
-        }
-        return pendingProblems[0];
-      }
-      
-      return null;
-    }
+    getNextSqlProblem: (problemOrder) => pickNextItem(get().sqlProblems, problemOrder),
   })
 );
