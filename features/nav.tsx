@@ -10,7 +10,9 @@ import {
   PenLine,
   NotebookPen,
   Library,
+  Code,
 } from "lucide-react";
+import { goLevels } from "@/lib/golang/catalog";
 
 export type NavBadge = "dsa-review" | "sql-review";
 
@@ -54,6 +56,17 @@ export const navGroups: NavGroup[] = [
       { name: "SQL Review", href: "/sql/review", icon: RotateCcw, badge: "sql-review", isActive: (pathname) => pathname.startsWith("/sql/review") },
       { name: "SQL Bookmarks", href: "/sql/bookmarks", icon: Bookmark, isActive: (pathname) => pathname.startsWith("/sql/bookmarks") },
       { name: "SQL Completed", href: "/sql/completed", icon: CheckCircle, isActive: (pathname) => pathname.startsWith("/sql/completed") },
+    ],
+  },
+  {
+    label: "Go",
+    items: [
+      { name: "Path", href: "/golang", icon: Code, isActive: (pathname) => pathname === "/golang" },
+      ...goLevels.map((level) => ({
+        name: `${level.n} ${level.short}`,
+        href: `/golang/${level.slug}`,
+        icon: level.icon,
+      })),
     ],
   },
   {

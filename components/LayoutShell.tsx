@@ -13,6 +13,7 @@ export function LayoutShell({
   const pathname = usePathname();
   const isBarePage = pathname === "/login" || pathname === "/change-password";
   const isFill = pathname.startsWith("/whiteboard") || pathname.startsWith("/notes");
+  const isWide = pathname.startsWith("/golang");
 
   if (isBarePage) {
     return <div className="w-full h-screen overflow-auto">{children}</div>;
@@ -31,7 +32,7 @@ export function LayoutShell({
         {isFill ? (
           children
         ) : (
-          <div className="max-w-5xl mx-auto min-w-0">{children}</div>
+          <div className={isWide ? "max-w-6xl mx-auto min-w-0" : "max-w-5xl mx-auto min-w-0"}>{children}</div>
         )}
       </main>
     </div>

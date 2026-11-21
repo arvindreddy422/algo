@@ -128,3 +128,34 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .go-code .shiki {
+    margin: 0;
+    padding: 1.2rem 1.3rem 1.35rem;
+    overflow-x: auto;
+    background-color: var(--shiki-light-bg);
+    color: var(--shiki-light);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 16px;
+    line-height: 1.75;
+  }
+
+  .go-code .shiki span {
+    color: var(--shiki-light);
+    background-color: transparent;
+    font-style: var(--shiki-light-font-style, normal);
+    font-weight: var(--shiki-light-font-weight, inherit);
+  }
+
+  .dark .go-code .shiki {
+    background-color: var(--shiki-dark-bg);
+    color: var(--shiki-dark);
+  }
+
+  .dark .go-code .shiki span {
+    color: var(--shiki-dark);
+    font-style: var(--shiki-dark-font-style, normal);
+    font-weight: var(--shiki-dark-font-weight, inherit);
+  }
+}
