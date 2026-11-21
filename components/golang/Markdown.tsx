@@ -64,6 +64,29 @@ function LessonLink({ href, children }: { href?: string; children?: ReactNode })
   );
 }
 
+const codeStyles = `
+.go-code .shiki {
+  margin: 0;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 100%;
+  padding: 1.15rem 1.25rem 1.3rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 15.5px;
+  line-height: 1.7;
+  tab-size: 4;
+}
+.go-code .shiki span {
+  background-color: transparent;
+  font-style: var(--shiki-light-font-style, normal);
+  font-weight: var(--shiki-light-font-weight, inherit);
+}
+html.dark .go-code .shiki span {
+  font-style: var(--shiki-dark-font-style, normal);
+  font-weight: var(--shiki-dark-font-weight, inherit);
+}
+`;
+
 export async function GoMarkdown({ markdown }: { markdown: string }) {
   const components: Components = {
     h1: ({ children }) => (
@@ -77,7 +100,7 @@ export async function GoMarkdown({ markdown }: { markdown: string }) {
     h3: ({ children }) => (
       <h3 className="mb-3 mt-8 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{children}</h3>
     ),
-    p: ({ children }) => <p className="mb-5 text-[17px] leading-8 text-zinc-800 dark:text-zinc-100">{children}</p>,
+    p: ({ children }) => <p className="mb-5 max-w-full text-[17px] leading-8 wrap-break-word text-zinc-800 dark:text-zinc-100">{children}</p>,
     ul: ({ children }) => <ul className="mb-5 list-disc space-y-2 pl-6 text-[17px] leading-8 text-zinc-800 marker:text-cyan-600 dark:text-zinc-100">{children}</ul>,
     ol: ({ children }) => <ol className="mb-5 list-decimal space-y-2 pl-6 text-[17px] leading-8 text-zinc-800 marker:font-semibold marker:text-cyan-700 dark:text-zinc-100 dark:marker:text-cyan-300">{children}</ol>,
     li: ({ children }) => <li className="pl-1">{children}</li>,
@@ -115,9 +138,12 @@ export async function GoMarkdown({ markdown }: { markdown: string }) {
   };
 
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-      {markdown}
-    </ReactMarkdown>
+    <div className="go-lesson min-w-0 max-w-full">
+      <style>{codeStyles}</style>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+        {markdown}
+      </ReactMarkdown>
+    </div>
   );
 }
 
@@ -125,11 +151,11 @@ async function HighlightedCode({ code, lang }: { code: string; lang: string }) {
   const html = await highlightCode(code, lang);
   const label = LANG_LABEL[lang] ?? lang;
   return (
-    <figure className="go-code my-6 overflow-hidden rounded-2xl border border-zinc-300 shadow-sm dark:border-zinc-600">
+    <figure className="go-code my-6 max-w-full min-w-0 overflow-hidden rounded-2xl border border-zinc-300 shadow-sm dark:border-zinc-600">
       <figcaption className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-4 py-2 dark:border-zinc-700 dark:bg-zinc-900">
         <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-cyan-700 dark:text-cyan-300">{label}</span>
       </figcaption>
-      <div dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="max-w-full overflow-x-auto" dangerouslySetInnerHTML={{ __html: html }} />
     </figure>
   );
 }

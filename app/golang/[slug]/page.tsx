@@ -36,7 +36,7 @@ export default async function GoLevelPage({
   const Icon = level.icon;
 
   return (
-    <article className="pb-16">
+    <article className="min-w-0 max-w-full pb-16">
       <header className="mb-8 rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-6 dark:border-cyan-900 dark:from-cyan-950/40 dark:to-zinc-950 sm:p-8">
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/golang" className="text-sm font-semibold uppercase tracking-[0.16em] text-cyan-700 hover:underline dark:text-cyan-300">

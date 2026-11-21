@@ -12,7 +12,7 @@ export function LayoutShell({
 }) {
   const pathname = usePathname();
   const isBarePage = pathname === "/login" || pathname === "/change-password";
-  const isFill = pathname.startsWith("/whiteboard") || pathname.startsWith("/notes");
+  const isFill = pathname.startsWith("/whiteboard") || pathname.startsWith("/notes") || pathname.startsWith("/pdfs");
   const isWide = pathname.startsWith("/golang");
 
   if (isBarePage) {

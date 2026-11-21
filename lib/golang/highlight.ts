@@ -36,6 +36,6 @@ export async function highlightCode(code: string, lang: string) {
       light: "catppuccin-latte",
       dark: "catppuccin-mocha",
     },
-    defaultColor: false,
+    defaultColor: "light-dark()",
   });
 }

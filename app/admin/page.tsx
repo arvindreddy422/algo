@@ -1,6 +1,7 @@
 import { Shield } from "lucide-react";
 import { listManagedUsers } from "@/app/actions/users";
 import { getSessionUser } from "@/lib/sessionUser";
+import { StudySettings } from "@/components/admin/StudySettings";
 import { UserAdmin } from "@/components/admin/UserAdmin";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,7 @@ export default async function AdminPage() {
         </div>
       </header>
       <UserAdmin people={people} currentUserId={me.id} />
+      <StudySettings />
     </div>
   );
 }

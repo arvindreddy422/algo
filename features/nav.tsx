@@ -4,13 +4,13 @@ import {
   Bookmark,
   CheckCircle,
   BarChart,
-  Settings,
   RotateCcw,
   Database,
   PenLine,
   NotebookPen,
   Library,
   Code,
+  FileText,
 } from "lucide-react";
 import { goLevels } from "@/lib/golang/catalog";
 
@@ -40,7 +40,6 @@ export const navGroups: NavGroup[] = [
       { name: "Review", href: "/review", icon: RotateCcw, badge: "dsa-review" },
       { name: "Completed", href: "/completed", icon: CheckCircle },
       { name: "Statistics", href: "/stats", icon: BarChart },
-      { name: "Settings", href: "/settings", icon: Settings },
     ],
   },
   {
@@ -67,6 +66,13 @@ export const navGroups: NavGroup[] = [
         href: `/golang/${level.slug}`,
         icon: level.icon,
       })),
+    ],
+  },
+  {
+    label: "Reference",
+    adminOnly: true,
+    items: [
+      { name: "PDF Notes", href: "/pdfs", icon: FileText, isActive: (pathname) => pathname.startsWith("/pdfs") },
     ],
   },
   {

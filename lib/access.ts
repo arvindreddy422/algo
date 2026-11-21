@@ -1,6 +1,6 @@
 export const MEMBER_HOME = "/notes";
 
-const ADMIN_PREFIXES = ["/bookmarks", "/review", "/completed", "/stats", "/settings", "/problem", "/sql"];
+const ADMIN_PREFIXES = ["/bookmarks", "/review", "/completed", "/stats", "/problem", "/sql", "/pdfs"];
 
 export function isAdminOnlyPath(pathname: string) {
   if (pathname === "/") return true;

@@ -8,11 +8,11 @@ Progress is stored per user. Problem catalogs are shared.
 
 | Area | Routes | What it is |
 | --- | --- | --- |
-| Algorithms | `/`, `/problem/[id]`, `/bookmarks`, `/review`, `/completed`, `/stats`, `/settings` | Grind 169 problems, a daily goal, a streak, and reviews scheduled from how confident you were |
+| Algorithms | `/`, `/problem/[id]`, `/bookmarks`, `/review`, `/completed`, `/stats` | Grind 169 problems, a daily goal, a streak, and reviews scheduled from how confident you were |
 | SQL | `/sql`, `/sql/problem/[id]`, `/sql/prerequisites`, `/sql/review`, `/sql/bookmarks`, `/sql/completed` | PostgreSQL-style problems (LeetCode, DataLemur, StrataScratch, and short conceptual items) plus a prerequisite checklist |
 | Practice hub | `/whiteboard` | An Excalidraw canvas saved in the browser |
 | Productivity | `/daily` | A shared daily problem log |
-| Account | `/login`, `/change-password`, `/admin` | Email and password sign-in. Admins can add people and hand them a temporary password |
+| Account | `/login`, `/change-password`, `/admin` | Email and password sign-in. Admins add people, and set the daily goal and problem order |
 
 On a problem, these keys work when focus is not in a text field:
 
@@ -25,7 +25,7 @@ On a problem, these keys work when focus is not in a text field:
 | `K` | Skip |
 | `N` | Next problem |
 
-Review gaps are 1, 3, 7, 14, and 30 days for confidence levels 1 through 5. The dashboard serves a due review before a new problem. Settings control the daily goal (default 3) and whether new problems come easiest-first or hardest-first.
+Review gaps are 1, 3, 7, 14, and 30 days for confidence levels 1 through 5. The dashboard serves a due review before a new problem. Admin sets the daily goal (default 3) and whether new problems come easiest-first or hardest-first.
 
 ## Stack
 
