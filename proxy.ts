@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { homeForRole, isAdminOnlyPath } from "@/lib/access";
 import { SESSION_COOKIE_NAME } from "@/lib/auth";
 import { getSessionUser } from "@/lib/sessionUser";
 
@@ -28,8 +29,12 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/change-password", request.url));
   }
 
+  if (user && !user.mustChangePassword && user.role !== "admin" && isAdminOnlyPath(pathname)) {
+    return NextResponse.redirect(new URL(homeForRole(user.role), request.url));
+  }
+
   if (user && !user.mustChangePassword && (isLoginPage || isPasswordPage)) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL(homeForRole(user.role), request.url));
   }
 
   return NextResponse.next();

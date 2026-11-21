@@ -346,6 +346,23 @@ export async function initDb() {
     CREATE INDEX IF NOT EXISTS daily_logs_log_date_idx ON daily_logs (log_date)
   `);
 
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS vault_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      parent_id INTEGER,
+      title TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
+  await db.run(sql`
+    CREATE INDEX IF NOT EXISTS vault_notes_user_idx ON vault_notes (user_id, parent_id)
+  `);
+
   await copyLegacyProgress();
 }
 

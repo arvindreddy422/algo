@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
   Loader2,
   Pencil,
@@ -34,8 +36,8 @@ type DailyEntry = {
 };
 
 type SessionUser = { id: string; name: string; email: string };
-type DateCount = { date: string; count: number };
-type DuplicateMatch = { id: number; title: string; logDate: string; addedByName: string };
+type PersonCount = { id: string; name: string; count: number };
+type DuplicateMatch = { id: number; title: string; addedByName: string };
 
 type LogFormState = {
   title: string;
@@ -44,9 +46,9 @@ type LogFormState = {
   notes: string;
   difficulty: Difficulty | "";
   topic: string;
-  logDate: string;
 };
 
+const PAGE_SIZE = 15;
 const DIFFICULTIES: Difficulty[] = ["Easy", "Medium", "Hard"];
 
 const DIFFICULTY_CLASS: Record<Difficulty, string> = {
@@ -81,10 +83,6 @@ function toDate(value: string) {
   return new Date(year, month - 1, day);
 }
 
-function formatLogDate(value: string) {
-  return format(toDate(value), "EEE, d MMM yyyy");
-}
-
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).slice(0, 2);
   const letters = parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
@@ -97,7 +95,7 @@ function avatarColor(id: string) {
   return AVATAR_COLORS[hash];
 }
 
-function emptyForm(logDate: string): LogFormState {
+function emptyForm(): LogFormState {
   return {
     title: "",
     url: "",
@@ -105,7 +103,6 @@ function emptyForm(logDate: string): LogFormState {
     notes: "",
     difficulty: "",
     topic: "",
-    logDate,
   };
 }
 
@@ -117,8 +114,13 @@ function entryToForm(entry: DailyEntry): LogFormState {
     notes: entry.notes ?? "",
     difficulty: entry.difficulty ?? "",
     topic: entry.topic ?? "",
-    logDate: entry.logDate,
   };
+}
+
+function pageWindow(current: number, totalPages: number) {
+  const start = Math.max(1, Math.min(current - 2, totalPages - 4));
+  const end = Math.min(totalPages, start + 4);
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
 function useDuplicate(url: string, ignoreId?: number) {
@@ -195,48 +197,36 @@ function LogForm({
           className={inputClass}
         />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="min-w-0 lg:col-span-2">
-          <FieldLabel>Link</FieldLabel>
-          <input
-            value={form.url}
-            onChange={(event) => setForm({ ...form, url: event.target.value })}
-            placeholder="https://leetcode.com/problems/two-sum"
-            type="text"
-            inputMode="url"
-            className={inputClass}
-          />
-          {duplicate && (
-            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
-              {`Already logged on ${formatLogDate(duplicate.logDate)} by ${duplicate.addedByName}${duplicate.title ? ` (${duplicate.title})` : ""}. You can still save it.`}
-            </p>
-          )}
-        </div>
-        <div className="min-w-0">
-          <FieldLabel>Topic</FieldLabel>
-          <input
-            value={form.topic}
-            onChange={(event) => setForm({ ...form, topic: event.target.value })}
-            placeholder="Sliding window"
-            list={listId}
-            className={inputClass}
-          />
-          <datalist id={listId}>
-            {topics.map((topic) => (
-              <option key={topic} value={topic} />
-            ))}
-          </datalist>
-        </div>
-        <div className="min-w-0">
-          <FieldLabel>Date</FieldLabel>
-          <input
-            value={form.logDate}
-            onChange={(event) => setForm({ ...form, logDate: event.target.value })}
-            type="date"
-            required
-            className={inputClass}
-          />
-        </div>
+      <div>
+        <FieldLabel>Link</FieldLabel>
+        <input
+          value={form.url}
+          onChange={(event) => setForm({ ...form, url: event.target.value })}
+          placeholder="https://leetcode.com/problems/two-sum"
+          type="text"
+          inputMode="url"
+          className={inputClass}
+        />
+        {duplicate && (
+          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+            {`Already logged by ${duplicate.addedByName}${duplicate.title ? ` (${duplicate.title})` : ""}. You can still save it.`}
+          </p>
+        )}
+      </div>
+      <div>
+        <FieldLabel>Topic</FieldLabel>
+        <input
+          value={form.topic}
+          onChange={(event) => setForm({ ...form, topic: event.target.value })}
+          placeholder="Sliding window"
+          list={listId}
+          className={inputClass}
+        />
+        <datalist id={listId}>
+          {topics.map((topic) => (
+            <option key={topic} value={topic} />
+          ))}
+        </datalist>
       </div>
       <div>
         <FieldLabel>Difficulty</FieldLabel>
@@ -315,52 +305,53 @@ function LogForm({
 }
 
 export default function DailyPage() {
-  const today = useMemo(() => localToday(), []);
   const [me, setMe] = useState<SessionUser | null>(null);
   const [entries, setEntries] = useState<DailyEntry[]>([]);
-  const [dates, setDates] = useState<DateCount[]>([]);
-  const [selectedDate, setSelectedDate] = useState(today);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [people, setPeople] = useState<PersonCount[]>([]);
+  const [topics, setTopics] = useState<string[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [personFilter, setPersonFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<LogFormState>(() => emptyForm(today));
+  const [form, setForm] = useState<LogFormState>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<LogFormState>(() => emptyForm(today));
+  const [editing, setEditing] = useState<DailyEntry | null>(null);
+  const [editForm, setEditForm] = useState<LogFormState>(emptyForm);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [refresh, setRefresh] = useState(0);
 
   const createDuplicate = useDuplicate(showForm ? form.url : "", undefined);
-  const editDuplicate = useDuplicate(editingId ? editForm.url : "", editingId ?? undefined);
+  const editDuplicate = useDuplicate(editing ? editForm.url : "", editing?.id);
 
-  const load = useCallback(async (date: string, query: string) => {
+  const load = useCallback(async (nextPage: number, query: string, addedBy: string) => {
     setError("");
+    const params = new URLSearchParams({ page: String(nextPage) });
+    if (query) params.set("q", query);
+    if (addedBy !== "all") params.set("addedBy", addedBy);
     try {
-      const qs = query
-        ? `q=${encodeURIComponent(query)}`
-        : `date=${encodeURIComponent(date)}`;
-      const [listRes, datesRes] = await Promise.all([
-        fetch(`/api/daily?${qs}`),
-        fetch("/api/daily/dates"),
-      ]);
-      if (listRes.status === 401 || datesRes.status === 401) {
+      const res = await fetch(`/api/daily?${params}`);
+      if (res.status === 401) {
         setError("Sign in again to use the daily log.");
         return;
       }
-      if (!listRes.ok) {
-        const body = await listRes.json().catch(() => ({}));
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
         setError(body.error || "Could not load the log.");
         return;
       }
-      const list = await listRes.json();
-      const dateBody = datesRes.ok ? await datesRes.json() : { dates: [] };
-      setMe(list.me ?? null);
-      setEntries(Array.isArray(list.entries) ? list.entries : []);
-      setDates(Array.isArray(dateBody.dates) ? dateBody.dates : []);
+      const body = await res.json();
+      setMe(body.me ?? null);
+      setEntries(Array.isArray(body.entries) ? body.entries : []);
+      setTotal(typeof body.total === "number" ? body.total : 0);
+      setPeople(Array.isArray(body.people) ? body.people : []);
+      setTopics(Array.isArray(body.topics) ? body.topics : []);
+      if (typeof body.page === "number" && body.page !== nextPage) setPage(body.page);
     } catch {
       setError("Could not load the log.");
     } finally {
@@ -369,53 +360,44 @@ export default function DailyPage() {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(searchInput.trim()), 250);
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 250);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
   useEffect(() => {
     setLoading(true);
-    load(selectedDate, search);
-  }, [load, selectedDate, search]);
+    load(page, search, personFilter);
+  }, [load, page, search, personFilter, refresh]);
 
-  const topics = useMemo(
-    () => Array.from(new Set(entries.map((entry) => entry.topic).filter((topic): topic is string => Boolean(topic)))).sort(),
-    [entries]
-  );
+  useEffect(() => {
+    if (!editing) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setEditing(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [editing]);
 
-  const visible = personFilter === "all" ? entries : entries.filter((entry) => entry.addedBy === personFilter);
-
-  const byPerson = useMemo(() => {
-    const map = new Map<string, { name: string; count: number }>();
-    for (const entry of entries) {
-      const current = map.get(entry.addedBy) ?? { name: entry.addedByName, count: 0 };
-      current.count += 1;
-      map.set(entry.addedBy, current);
-    }
-    return Array.from(map.entries());
-  }, [entries]);
-
-  const history = useMemo(() => {
-    const todayCount = dates.find((item) => item.date === today)?.count ?? 0;
-    return [
-      { date: today, count: todayCount },
-      ...dates.filter((item) => item.date !== today),
-    ];
-  }, [dates, today]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageNumbers = useMemo(() => pageWindow(page, totalPages), [page, totalPages]);
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(total, page * PAGE_SIZE);
 
   const openCreate = () => {
-    setForm(emptyForm(search ? today : selectedDate));
+    setForm(emptyForm());
     setFormError("");
     setShowForm(true);
-    setEditingId(null);
+    setEditing(null);
   };
 
-  const selectDay = (date: string) => {
-    setSearchInput("");
-    setSearch("");
-    setSelectedDate(date);
-    setExpandedId(null);
-    setEditingId(null);
+  const openEdit = (entry: DailyEntry) => {
+    setEditing(entry);
+    setEditForm(entryToForm(entry));
+    setFormError("");
+    setConfirmDeleteId(null);
   };
 
   const handleCreate = async (event: React.FormEvent) => {
@@ -429,6 +411,7 @@ export default function DailyPage() {
         body: JSON.stringify({
           ...form,
           difficulty: form.difficulty || null,
+          logDate: localToday(),
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -437,32 +420,25 @@ export default function DailyPage() {
         return;
       }
       setShowForm(false);
-      setForm(emptyForm(form.logDate));
+      setForm(emptyForm());
+      setExpandedId(body.id ?? null);
+      setPersonFilter("all");
       setSearchInput("");
       setSearch("");
-      setSelectedDate(form.logDate);
-      setExpandedId(body.id ?? null);
-      await load(form.logDate, "");
+      setPage(1);
+      setRefresh((current) => current + 1);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const startEdit = (entry: DailyEntry) => {
-    setEditingId(entry.id);
-    setEditForm(entryToForm(entry));
-    setExpandedId(entry.id);
-    setFormError("");
-    setConfirmDeleteId(null);
-  };
-
   const handleEdit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!editingId) return;
+    if (!editing) return;
     setSubmitting(true);
     setFormError("");
     try {
-      const res = await fetch(`/api/daily/${editingId}`, {
+      const res = await fetch(`/api/daily/${editing.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -475,10 +451,9 @@ export default function DailyPage() {
         setFormError(body.error || "Could not update the problem.");
         return;
       }
-      const nextDate = editForm.logDate;
-      setEditingId(null);
-      if (!search && nextDate !== selectedDate) setSelectedDate(nextDate);
-      await load(search ? selectedDate : nextDate, search);
+      setEditing(null);
+      setExpandedId(body.id ?? editing.id);
+      setRefresh((current) => current + 1);
     } finally {
       setSubmitting(false);
     }
@@ -492,23 +467,22 @@ export default function DailyPage() {
     }
     setConfirmDeleteId(null);
     setExpandedId(null);
-    setEditingId(null);
-    await load(selectedDate, search);
+    setEditing(null);
+    if (entries.length === 1 && page > 1) setPage(page - 1);
+    setRefresh((current) => current + 1);
   };
 
-  const heading = search
-    ? `Results for “${search}”`
-    : selectedDate === today
-      ? "Today"
-      : format(toDate(selectedDate), "EEEE, d MMMM");
+  const changePerson = (id: string) => {
+    setPersonFilter(id);
+    setPage(1);
+    setExpandedId(null);
+  };
 
   const emptyCopy = search
     ? "No problems match that search."
     : personFilter !== "all"
-      ? "Nothing from this person here."
-      : selectedDate === today
-        ? "Nothing logged today. Add the problem you just solved."
-        : "No problems logged on this day.";
+      ? "Nothing from this person."
+      : "No problems yet. Add the one you just solved.";
 
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6">
@@ -528,57 +502,14 @@ export default function DailyPage() {
         </button>
       </header>
 
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 min-w-0">
-        <div className="relative flex-1 min-w-0">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Search titles and topics"
-            className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
-          />
-        </div>
-        {search && (
-          <button
-            type="button"
-            onClick={() => {
-              setSearchInput("");
-              setSearch("");
-            }}
-            className="inline-flex min-h-11 items-center justify-center gap-1.5 px-3 py-2 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            <X className="w-3.5 h-3.5" />
-            Clear search
-          </button>
-        )}
-      </div>
-
-      <div className="flex gap-2 overflow-x-auto overscroll-x-contain snap-x snap-mandatory pb-1 -mx-4 px-4 md:-mx-6 md:px-6 lg:mx-0 lg:px-0 min-w-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {history.map((item) => {
-          const active = !search && item.date === selectedDate;
-          const date = toDate(item.date);
-          return (
-            <button
-              key={item.date}
-              type="button"
-              onClick={() => selectDay(item.date)}
-              className={cn(
-                "snap-start shrink-0 w-[4.75rem] min-h-16 rounded-xl border px-2 py-2.5 text-center transition-colors",
-                active
-                  ? "bg-zinc-900 border-zinc-900 text-white dark:bg-zinc-100 dark:border-zinc-100 dark:text-zinc-900"
-                  : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700"
-              )}
-            >
-              <span className={cn("block text-[10px] uppercase tracking-wider", active ? "opacity-70" : "text-zinc-400")}>
-                {item.date === today ? "Today" : format(date, "EEE")}
-              </span>
-              <span className="mt-0.5 block text-lg font-semibold leading-none tabular-nums">{format(date, "d")}</span>
-              <span className={cn("mt-1 block text-[10px]", active ? "opacity-70" : "text-zinc-400")}>
-                {format(date, "MMM")} · {item.count}
-              </span>
-            </button>
-          );
-        })}
+      <div className="relative min-w-0">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+        <input
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          placeholder="Search titles and topics"
+          className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+        />
       </div>
 
       {showForm && (
@@ -595,24 +526,23 @@ export default function DailyPage() {
             onCancel={() => setShowForm(false)}
             listId="daily-topics-create"
           />
-          {formError && !editingId && <p className="mt-3 text-sm text-red-500">{formError}</p>}
+          {formError && !editing && <p className="mt-3 text-sm text-red-500">{formError}</p>}
         </section>
       )}
 
       <section className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
-            <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 break-words">{heading}</h2>
+            <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">Problems</h2>
             <p className="text-sm text-zinc-500">
-              {visible.length} {visible.length === 1 ? "problem" : "problems"}
-              {personFilter !== "all" && entries.length !== visible.length ? ` of ${entries.length}` : ""}
+              {total === 0 ? "0 problems" : `${rangeStart}–${rangeEnd} of ${total}`}
             </p>
           </div>
-          {byPerson.length > 0 && (
+          {people.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
-                onClick={() => setPersonFilter("all")}
+                onClick={() => changePerson("all")}
                 className={cn(
                   "min-h-10 px-3 rounded-full text-xs font-medium border",
                   personFilter === "all"
@@ -622,22 +552,22 @@ export default function DailyPage() {
               >
                 Everyone
               </button>
-              {byPerson.map(([id, info]) => (
+              {people.map((person) => (
                 <button
-                  key={id}
+                  key={person.id}
                   type="button"
-                  onClick={() => setPersonFilter(id)}
+                  onClick={() => changePerson(person.id)}
                   className={cn(
                     "inline-flex items-center gap-1.5 min-h-10 max-w-full px-3 rounded-full text-xs font-medium border",
-                    personFilter === id
+                    personFilter === person.id
                       ? "bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100"
                       : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300"
                   )}
                 >
-                  <span className={cn("w-4 h-4 rounded-full text-[9px] font-semibold text-white inline-flex items-center justify-center", personFilter === id ? "bg-white/20" : avatarColor(id))}>
-                    {initials(info.name).slice(0, 1)}
+                  <span className={cn("w-4 h-4 rounded-full text-[9px] font-semibold text-white inline-flex items-center justify-center", personFilter === person.id ? "bg-white/20" : avatarColor(person.id))}>
+                    {initials(person.name).slice(0, 1)}
                   </span>
-                  {me?.id === id ? "You" : info.name} · {info.count}
+                  {me?.id === person.id ? "You" : person.name} · {person.count}
                 </button>
               ))}
             </div>
@@ -654,7 +584,7 @@ export default function DailyPage() {
           <div className="flex items-center justify-center h-40">
             <Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
           </div>
-        ) : visible.length === 0 ? (
+        ) : entries.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 px-6 py-14 text-center">
             <p className="text-sm text-zinc-500">{emptyCopy}</p>
             {!search && personFilter === "all" && (
@@ -670,7 +600,7 @@ export default function DailyPage() {
           </div>
         ) : (
           <ul className="space-y-2.5">
-            {visible.map((entry) => {
+            {entries.map((entry) => {
               const open = expandedId === entry.id;
               const editedBySomeoneElse = Boolean(entry.updatedBy && entry.updatedBy !== entry.addedBy);
               const mine = me?.id === entry.addedBy;
@@ -687,9 +617,7 @@ export default function DailyPage() {
                           type="button"
                           aria-expanded={open}
                           onClick={() => {
-                            if (editingId === entry.id) return;
                             setConfirmDeleteId(null);
-                            setEditingId(null);
                             setExpandedId(open ? null : entry.id);
                           }}
                           className="flex-1 min-w-0 text-left"
@@ -712,7 +640,7 @@ export default function DailyPage() {
                               {initials(entry.addedByName)}
                             </span>
                             {mine ? `${entry.addedByName} (you)` : entry.addedByName}
-                            {search ? ` · ${formatLogDate(entry.logDate)}` : ""}
+                            {` · ${format(toDate(entry.logDate), "d MMM yyyy")}`}
                             {editedBySomeoneElse ? ` · Edited by ${entry.updatedByName}` : ""}
                           </span>
                         </button>
@@ -729,73 +657,64 @@ export default function DailyPage() {
                               <ExternalLink className="w-3.5 h-3.5" />
                             </a>
                           )}
-                          <ChevronDown className={cn("w-4 h-4 text-zinc-400 transition-transform", open && "rotate-180")} />
+                          <button
+                            type="button"
+                            onClick={() => openEdit(entry)}
+                            className="inline-flex min-h-11 items-center gap-1.5 px-2.5 text-xs font-medium rounded-md border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={open ? "Collapse problem" : "Expand problem"}
+                            onClick={() => {
+                              setConfirmDeleteId(null);
+                              setExpandedId(open ? null : entry.id);
+                            }}
+                            className="inline-flex h-11 w-9 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                          >
+                            <ChevronDown className={cn("w-4 h-4 transition-transform", open && "rotate-180")} />
+                          </button>
                         </div>
                       </div>
 
                       {open && (
-                        <div className="px-3 pb-3 sm:px-4 sm:pb-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
-                          {editingId === entry.id ? (
-                            <>
-                              <LogForm
-                                form={editForm}
-                                setForm={setEditForm}
-                                topics={topics}
-                                duplicate={editDuplicate}
-                                submitting={submitting}
-                                submitLabel="Save changes"
-                                onSubmit={handleEdit}
-                                onCancel={() => setEditingId(null)}
-                                listId="daily-topics-edit"
-                              />
-                              {formError && <p className="mt-3 text-sm text-red-500">{formError}</p>}
-                            </>
-                          ) : (
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                                <div className="min-w-0 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 p-3 sm:p-4">
-                                  <h3 className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 mb-2">Approach</h3>
-                                  <p className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-words">{entry.approach}</p>
-                                </div>
-                                <div className="min-w-0 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 p-3 sm:p-4">
-                                  <h3 className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 mb-2">Hints and test cases</h3>
-                                  <p className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-words">
-                                    {entry.notes || "None yet."}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => startEdit(entry)}
-                                  className="inline-flex min-h-11 items-center gap-1.5 px-3 text-xs font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                                >
-                                  <Pencil className="w-3.5 h-3.5" />
-                                  Edit
-                                </button>
-                                {confirmDeleteId === entry.id ? (
-                                  <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                                    <span className="text-zinc-500">Delete this problem?</span>
-                                    <button type="button" onClick={() => handleDelete(entry.id)} className="min-h-11 font-medium text-red-600">
-                                      Delete
-                                    </button>
-                                    <button type="button" onClick={() => setConfirmDeleteId(null)} className="min-h-11 font-medium text-zinc-500">
-                                      Cancel
-                                    </button>
-                                  </span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => setConfirmDeleteId(entry.id)}
-                                    className="inline-flex min-h-11 items-center gap-1.5 px-3 text-xs font-medium rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                    Delete
-                                  </button>
-                                )}
-                              </div>
+                        <div className="px-3 pb-3 sm:px-4 sm:pb-4 border-t border-zinc-100 dark:border-zinc-800 pt-4 space-y-4">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                            <div className="min-w-0 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 p-3 sm:p-4">
+                              <h3 className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 mb-2">Approach</h3>
+                              <p className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-words">{entry.approach}</p>
                             </div>
-                          )}
+                            <div className="min-w-0 rounded-xl bg-zinc-50 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-800 p-3 sm:p-4">
+                              <h3 className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 mb-2">Hints and test cases</h3>
+                              <p className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap break-words">
+                                {entry.notes || "None yet."}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {confirmDeleteId === entry.id ? (
+                              <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                                <span className="text-zinc-500">Delete this problem?</span>
+                                <button type="button" onClick={() => handleDelete(entry.id)} className="min-h-11 font-medium text-red-600">
+                                  Delete
+                                </button>
+                                <button type="button" onClick={() => setConfirmDeleteId(null)} className="min-h-11 font-medium text-zinc-500">
+                                  Cancel
+                                </button>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteId(entry.id)}
+                                className="inline-flex min-h-11 items-center gap-1.5 px-3 text-xs font-medium rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Delete
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -805,7 +724,94 @@ export default function DailyPage() {
             })}
           </ul>
         )}
+
+        {!loading && total > PAGE_SIZE && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-1">
+            <p className="text-xs text-zinc-500">
+              Page {page} of {totalPages}
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={page <= 1}
+                className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-700 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-200"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Previous
+              </button>
+              {pageNumbers.map((number) => (
+                <button
+                  key={number}
+                  type="button"
+                  onClick={() => setPage(number)}
+                  className={cn(
+                    "min-h-10 min-w-10 rounded-lg border px-2 text-xs font-medium",
+                    number === page
+                      ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                      : "border-zinc-200 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
+                  )}
+                >
+                  {number}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                disabled={page >= totalPages}
+                className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-700 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-200"
+              >
+                Next
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
       </section>
+
+      {editing && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setEditing(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-problem-title"
+            className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl border border-zinc-200 bg-white p-4 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900 sm:max-w-2xl sm:rounded-3xl sm:p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 id="edit-problem-title" className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                  Edit problem
+                </h2>
+                <p className="mt-0.5 text-sm text-zinc-500">{editing.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                aria-label="Close"
+                className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <LogForm
+              form={editForm}
+              setForm={setEditForm}
+              topics={topics}
+              duplicate={editDuplicate}
+              submitting={submitting}
+              submitLabel="Save changes"
+              onSubmit={handleEdit}
+              onCancel={() => setEditing(null)}
+              listId="daily-topics-edit"
+            />
+            {formError && <p className="mt-3 text-sm text-red-500">{formError}</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -133,34 +133,75 @@ export function parseDifficulty(value: unknown): Difficulty | null | undefined {
   return undefined;
 }
 
+function searchPattern(q: string) {
+  return `%${q.replace(/[%_]/g, "")}%`;
+}
+
 export async function listDailyLogs(filter: {
-  date?: string;
   q?: string;
   url?: string;
-}): Promise<DailyLogEntry[]> {
+  addedBy?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<{ entries: DailyLogEntry[]; total: number }> {
   const conditions = [];
   if (filter.url) conditions.push(eq(dailyLogs.url, filter.url));
-  if (filter.date) conditions.push(eq(dailyLogs.logDate, filter.date));
+  if (filter.addedBy) conditions.push(eq(dailyLogs.addedBy, filter.addedBy));
   if (filter.q) {
-    const pattern = `%${filter.q.replace(/[%_]/g, "")}%`;
+    const pattern = searchPattern(filter.q);
     conditions.push(or(like(dailyLogs.title, pattern), like(dailyLogs.topic, pattern)));
   }
 
-  const rows = await logsQuery()
-    .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(dailyLogs.createdAt));
+  const where = conditions.length ? and(...conditions) : undefined;
+  const [totalRow] = await db.select({ total: count() }).from(dailyLogs).where(where);
+  const total = totalRow?.total ?? 0;
 
-  return rows.map(toEntry);
+  const page = filter.page != null && filter.pageSize != null ? Math.max(1, filter.page) : null;
+  const pageSize = page != null ? Math.min(50, Math.max(1, filter.pageSize!)) : null;
+
+  const rows = await logsQuery()
+    .where(where)
+    .orderBy(desc(dailyLogs.createdAt), desc(dailyLogs.id))
+    .limit(pageSize ?? Math.max(total, 1))
+    .offset(page != null && pageSize != null ? (page - 1) * pageSize : 0);
+
+  return { entries: rows.map(toEntry), total };
 }
 
-export async function listDailyDates(): Promise<{ date: string; count: number }[]> {
-  const rows = await db
-    .select({ date: dailyLogs.logDate, count: count() })
-    .from(dailyLogs)
-    .groupBy(dailyLogs.logDate)
-    .orderBy(desc(dailyLogs.logDate));
+export async function listDailyTopics(): Promise<string[]> {
+  const rows = await db.selectDistinct({ topic: dailyLogs.topic }).from(dailyLogs);
+  return rows
+    .map((row) => row.topic)
+    .filter((topic): topic is string => Boolean(topic))
+    .sort((a, b) => a.localeCompare(b));
+}
 
-  return rows.map((row) => ({ date: row.date, count: row.count }));
+export async function listDailyContributors(q?: string): Promise<{ id: string; name: string; count: number }[]> {
+  const conditions = [];
+  if (q) {
+    const pattern = searchPattern(q);
+    conditions.push(or(like(dailyLogs.title, pattern), like(dailyLogs.topic, pattern)));
+  }
+
+  const rows = await db
+    .select({
+      id: dailyLogs.addedBy,
+      name: adder.name,
+      email: adder.email,
+      count: count(),
+    })
+    .from(dailyLogs)
+    .leftJoin(adder, eq(dailyLogs.addedBy, adder.id))
+    .where(conditions.length ? and(...conditions) : undefined)
+    .groupBy(dailyLogs.addedBy, adder.name, adder.email);
+
+  return rows
+    .map((row) => ({
+      id: row.id,
+      name: displayName(row.name, row.email),
+      count: row.count,
+    }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
 export async function createDailyLog(input: DailyLogInput, userId: string): Promise<DailyLogEntry> {

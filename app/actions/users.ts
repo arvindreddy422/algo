@@ -263,5 +263,5 @@ export async function changePasswordAction(
   }
 
   await setSessionCookie(me.email, false);
-  redirect("/");
+  redirect(me.role === "admin" ? "/" : "/notes");
 }

@@ -12,7 +12,7 @@ export function LayoutShell({
 }) {
   const pathname = usePathname();
   const isBarePage = pathname === "/login" || pathname === "/change-password";
-  const isWhiteboard = pathname.startsWith("/whiteboard");
+  const isFill = pathname.startsWith("/whiteboard") || pathname.startsWith("/notes");
 
   if (isBarePage) {
     return <div className="w-full h-screen overflow-auto">{children}</div>;
@@ -23,12 +23,12 @@ export function LayoutShell({
       <Sidebar isAdmin={isAdmin} />
       <main
         className={
-          isWhiteboard
+          isFill
             ? "flex min-h-0 min-w-0 flex-1 flex-col h-full pt-14 md:pt-0"
             : "flex-1 min-w-0 overflow-y-auto w-full h-full p-4 md:p-6 lg:p-8 pt-[calc(1rem+3.5rem)] md:pt-6 lg:pt-8"
         }
       >
-        {isWhiteboard ? (
+        {isFill ? (
           children
         ) : (
           <div className="max-w-5xl mx-auto min-w-0">{children}</div>

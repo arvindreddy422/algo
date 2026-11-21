@@ -84,6 +84,17 @@ export const sqlPrerequisites = sqliteTable("sql_prerequisites", {
   completed: integer("completed", { mode: "boolean" }).notNull().default(false),
 });
 
+export const vaultNotes = sqliteTable("vault_notes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: text("user_id").notNull(),
+  parentId: integer("parent_id"),
+  title: text("title").notNull(),
+  kind: text("kind", { enum: ["note", "folder"] }).notNull(),
+  content: text("content").notNull().default(""),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export const dailyLogs = sqliteTable("daily_logs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),

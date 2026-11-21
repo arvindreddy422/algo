@@ -3,11 +3,15 @@ import { getSessionUser } from "@/lib/sessionUser";
 import {
   createDailyLog,
   isLogDate,
+  listDailyContributors,
   listDailyLogs,
+  listDailyTopics,
   normalizeUrl,
   parseDifficulty,
   type DailyLogInput,
 } from "@/lib/dailyLogs";
+
+const PAGE_SIZE = 15;
 
 function cleanText(value: unknown, max: number): string {
   if (typeof value !== "string") return "";
@@ -72,32 +76,30 @@ export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
   const checkUrl = params.get("checkUrl");
   const q = params.get("q")?.trim() ?? "";
-  const date = params.get("date")?.trim() ?? "";
 
   if (checkUrl != null) {
     const url = normalizeUrl(checkUrl);
-    const matches = url ? await listDailyLogs({ url }) : [];
+    const { entries } = url ? await listDailyLogs({ url }) : { entries: [] };
     return NextResponse.json({
-      matches: matches.map((entry) => ({
+      matches: entries.map((entry) => ({
         id: entry.id,
         title: entry.title,
-        logDate: entry.logDate,
         addedByName: entry.addedByName,
       })),
     });
   }
 
-  if (q) {
-    const entries = await listDailyLogs({ q });
-    return NextResponse.json({ me: user, entries });
-  }
+  const requested = Number(params.get("page") ?? "1");
+  const page = Number.isInteger(requested) && requested > 0 ? requested : 1;
+  const addedBy = params.get("addedBy")?.trim() || undefined;
 
-  if (!isLogDate(date)) {
-    return NextResponse.json({ error: "A valid date is required." }, { status: 400 });
-  }
+  const [{ entries, total }, people, topics] = await Promise.all([
+    listDailyLogs({ q: q || undefined, addedBy, page, pageSize: PAGE_SIZE }),
+    listDailyContributors(q || undefined),
+    listDailyTopics(),
+  ]);
 
-  const entries = await listDailyLogs({ date });
-  return NextResponse.json({ me: user, entries });
+  return NextResponse.json({ me: user, entries, total, page, pageSize: PAGE_SIZE, people, topics });
 }
 
 export async function POST(req: NextRequest) {

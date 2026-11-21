@@ -8,6 +8,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { homeForRole } from "@/lib/access";
 import { isBootstrapAdmin, verifyToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { setSessionCookie } from "@/lib/sessionCookie";
 
@@ -98,7 +99,20 @@ export async function loginAction(
   }
 
   await setSessionCookie(authenticatedUserEmail, mustChangePassword);
-  redirect(mustChangePassword ? "/change-password" : "/");
+  if (mustChangePassword) redirect("/change-password");
+
+  let role: string | null = null;
+  try {
+    const [row] = await db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.email, authenticatedUserEmail))
+      .limit(1);
+    role = row?.role ?? null;
+  } catch {
+    role = isBootstrapAdmin(authenticatedUserEmail) ? "admin" : "user";
+  }
+  redirect(homeForRole(role));
 }
 
 export async function logoutAction(): Promise<void> {

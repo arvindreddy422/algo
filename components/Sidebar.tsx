@@ -56,7 +56,7 @@ function NavContent({
       </div>
 
       <nav className="flex-1 px-3 space-y-6 overflow-y-auto pb-4">
-        {navGroups.map((group) => (
+        {navGroups.filter((group) => isAdmin || !group.adminOnly).map((group) => (
           <div key={group.label}>
             {!collapsed && (
               <div className="px-3 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">

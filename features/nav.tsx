@@ -9,6 +9,7 @@ import {
   Database,
   PenLine,
   NotebookPen,
+  Library,
 } from "lucide-react";
 
 export type NavBadge = "dsa-review" | "sql-review";
@@ -24,11 +25,13 @@ export type NavItem = {
 export type NavGroup = {
   label: string;
   items: NavItem[];
+  adminOnly?: boolean;
 };
 
 export const navGroups: NavGroup[] = [
   {
     label: "Algorithms",
+    adminOnly: true,
     items: [
       { name: "Dashboard", href: "/", icon: Home, isActive: (pathname) => pathname === "/" },
       { name: "Bookmarks", href: "/bookmarks", icon: Bookmark },
@@ -40,6 +43,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: "Databases",
+    adminOnly: true,
     items: [
       {
         name: "SQL Practice",
@@ -62,6 +66,7 @@ export const navGroups: NavGroup[] = [
     label: "Productivity",
     items: [
       { name: "Daily", href: "/daily", icon: NotebookPen, isActive: (pathname) => pathname.startsWith("/daily") },
+      { name: "Notes", href: "/notes", icon: Library, isActive: (pathname) => pathname.startsWith("/notes") },
     ],
   },
 ];
