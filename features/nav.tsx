@@ -11,7 +11,6 @@ import {
   PenLine,
   ListTodo,
   CalendarDays,
-  Boxes,
   NotebookPen,
 } from "lucide-react";
 
@@ -55,10 +54,6 @@ export const navGroups: NavGroup[] = [
       { name: "SQL Bookmarks", href: "/sql/bookmarks", icon: Bookmark, isActive: (pathname) => pathname.startsWith("/sql/bookmarks") },
       { name: "SQL Completed", href: "/sql/completed", icon: CheckCircle, isActive: (pathname) => pathname.startsWith("/sql/completed") },
     ],
-  },
-  {
-    label: "Design",
-    items: [{ name: "LLD", href: "/lld", icon: Boxes, isActive: (pathname) => pathname.startsWith("/lld") }],
   },
   {
     label: "Practice Hub",

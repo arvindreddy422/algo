@@ -1,6 +1,6 @@
 # DSA Coach
 
-A signed-in study app for interview prep. It tracks a Grind 169 algorithms list and a SQL problem set with spaced repetition, and it also holds low-level design notes, a practice hub, a shared daily log, todos, and a whiteboard.
+A signed-in study app for interview prep. It tracks a Grind 169 algorithms list and a SQL problem set with spaced repetition, and it also holds a practice hub, a shared daily log, todos, and a whiteboard.
 
 Progress is stored per user. Problem catalogs are shared.
 
@@ -10,7 +10,6 @@ Progress is stored per user. Problem catalogs are shared.
 | --- | --- | --- |
 | Algorithms | `/`, `/problem/[id]`, `/bookmarks`, `/review`, `/completed`, `/stats`, `/settings` | Grind 169 problems, a daily goal, a streak, and reviews scheduled from how confident you were |
 | SQL | `/sql`, `/sql/problem/[id]`, `/sql/prerequisites`, `/sql/review`, `/sql/bookmarks`, `/sql/completed` | PostgreSQL-style problems (LeetCode, DataLemur, StrataScratch, and short conceptual items) plus a prerequisite checklist |
-| Low-level design | `/lld`, `/lld/oops`, `/lld/solid`, `/lld/patterns`, `/lld/patterns/[slug]` | OOP, SOLID, and 13 design patterns. Lessons are static content in `data/lld`, with Python and Java examples |
 | Practice hub | `/practice`, `/whiteboard` | Links and lists for AtCoder, CSES, and InterviewBit, plus an Excalidraw canvas saved in the browser |
 | Productivity | `/daily`, `/todo`, `/calendar` | A shared daily problem log, personal todos, and a month view of due dates and revisions |
 | Account | `/login`, `/change-password`, `/admin` | Email and password sign-in. Admins can add people and hand them a temporary password |
@@ -158,12 +157,10 @@ npm run start    # serve the production build
 app/                 pages, layouts, and route handlers
   (dsa)/             algorithms dashboard and problem flow
   sql/               SQL practice
-  lld/               low-level design pages
   api/               todos, daily logs, AtCoder proxies
   actions/           auth and user admin
   login, change-password, admin, daily, todo, calendar, practice, whiteboard
-components/          shell, sidebar, admin, whiteboard, LLD lesson UI
-data/lld/            OOP, SOLID, and pattern lessons
+components/          shell, sidebar, admin, whiteboard
 data/grind169.json   source list mirrored by the embedded catalog in db/init.ts
 db/                  Drizzle schema, libsql client, runtime schema setup, SQL catalog
 features/            sidebar nav and shared study UI
