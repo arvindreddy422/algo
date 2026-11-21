@@ -7,10 +7,7 @@ import {
   Settings,
   RotateCcw,
   Database,
-  Globe,
   PenLine,
-  ListTodo,
-  CalendarDays,
   NotebookPen,
 } from "lucide-react";
 
@@ -58,7 +55,6 @@ export const navGroups: NavGroup[] = [
   {
     label: "Practice Hub",
     items: [
-      { name: "AtCoder / CSES / IB", href: "/practice", icon: Globe, isActive: (pathname) => pathname.startsWith("/practice") },
       { name: "Whiteboard", href: "/whiteboard", icon: PenLine, isActive: (pathname) => pathname.startsWith("/whiteboard") },
     ],
   },
@@ -66,8 +62,6 @@ export const navGroups: NavGroup[] = [
     label: "Productivity",
     items: [
       { name: "Daily", href: "/daily", icon: NotebookPen, isActive: (pathname) => pathname.startsWith("/daily") },
-      { name: "Todo", href: "/todo", icon: ListTodo, isActive: (pathname) => pathname.startsWith("/todo") },
-      { name: "Calendar", href: "/calendar", icon: CalendarDays, isActive: (pathname) => pathname.startsWith("/calendar") },
     ],
   },
 ];

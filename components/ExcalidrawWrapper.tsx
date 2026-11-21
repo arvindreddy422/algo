@@ -13,7 +13,7 @@ const Excalidraw = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex items-center justify-center w-full h-full bg-zinc-50 dark:bg-zinc-900">
+      <div className="flex h-full w-full items-center justify-center bg-zinc-50 dark:bg-zinc-900">
         <div className="flex flex-col items-center gap-3 text-zinc-400">
           <div className="w-8 h-8 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" />
           <span className="text-sm">Loading canvas…</span>
@@ -86,7 +86,7 @@ export function ExcalidrawWrapper() {
 
   if (!initialData) {
     return (
-      <div className="flex items-center justify-center w-full h-full bg-zinc-50 dark:bg-zinc-900">
+      <div className="flex h-full w-full items-center justify-center bg-zinc-50 dark:bg-zinc-900">
         <div className="flex flex-col items-center gap-3 text-zinc-400">
           <div className="w-8 h-8 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" />
           <span className="text-sm">Loading canvas…</span>
@@ -96,18 +96,20 @@ export function ExcalidrawWrapper() {
   }
 
   return (
-    <Excalidraw
-      initialData={initialData as any}
-      theme={resolvedTheme === "dark" ? "dark" : "light"}
-      onChange={handleChange}
-      UIOptions={{
-        canvasActions: {
-          saveToActiveFile: false,
-          loadScene: true,
-          export: { saveFileToDisk: true },
-          saveAsImage: true,
-        },
-      }}
-    />
+    <div className="h-full w-full">
+      <Excalidraw
+        initialData={initialData as any}
+        theme={resolvedTheme === "dark" ? "dark" : "light"}
+        onChange={handleChange}
+        UIOptions={{
+          canvasActions: {
+            saveToActiveFile: false,
+            loadScene: true,
+            export: { saveFileToDisk: true },
+            saveAsImage: true,
+          },
+        }}
+      />
+    </div>
   );
 }

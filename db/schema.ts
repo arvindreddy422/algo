@@ -99,22 +99,6 @@ export const dailyLogs = sqliteTable("daily_logs", {
   updatedAt: text("updated_at").notNull(),
 });
 
-export const todos = sqliteTable("todos", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: text("user_id").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  links: text("links", { mode: "json" }).$type<{ label: string; url: string }[]>(),
-  completed: integer("completed", { mode: "boolean" }).notNull().default(false),
-  status: text("status", { enum: ["pending", "in_progress", "review", "completed"] }).notNull().default("pending"),
-  priority: text("priority", { enum: ["low", "medium", "high"] }).notNull().default("medium"),
-  category: text("category").notNull().default("General"),
-  dueDate: text("due_date"),
-  revisionDate: text("revision_date"),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-});
-
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull(),

@@ -1,6 +1,6 @@
 # DSA Coach
 
-A signed-in study app for interview prep. It tracks a Grind 169 algorithms list and a SQL problem set with spaced repetition, and it also holds a practice hub, a shared daily log, todos, and a whiteboard.
+A signed-in study app for interview prep. It tracks a Grind 169 algorithms list and a SQL problem set with spaced repetition, and it also holds a shared daily log and a whiteboard.
 
 Progress is stored per user. Problem catalogs are shared.
 
@@ -10,8 +10,8 @@ Progress is stored per user. Problem catalogs are shared.
 | --- | --- | --- |
 | Algorithms | `/`, `/problem/[id]`, `/bookmarks`, `/review`, `/completed`, `/stats`, `/settings` | Grind 169 problems, a daily goal, a streak, and reviews scheduled from how confident you were |
 | SQL | `/sql`, `/sql/problem/[id]`, `/sql/prerequisites`, `/sql/review`, `/sql/bookmarks`, `/sql/completed` | PostgreSQL-style problems (LeetCode, DataLemur, StrataScratch, and short conceptual items) plus a prerequisite checklist |
-| Practice hub | `/practice`, `/whiteboard` | Links and lists for AtCoder, CSES, and InterviewBit, plus an Excalidraw canvas saved in the browser |
-| Productivity | `/daily`, `/todo`, `/calendar` | A shared daily problem log, personal todos, and a month view of due dates and revisions |
+| Practice hub | `/whiteboard` | An Excalidraw canvas saved in the browser |
+| Productivity | `/daily` | A shared daily problem log |
 | Account | `/login`, `/change-password`, `/admin` | Email and password sign-in. Admins can add people and hand them a temporary password |
 
 On a problem, these keys work when focus is not in a text field:
@@ -126,7 +126,6 @@ Day-to-day setup only needs `npm run seed`. Drizzle Kit does not replace `initDb
 | `problem_progress`, `sql_problem_progress`, `sql_prerequisite_progress` | Per-user status, notes, solve time, review date, confidence |
 | `user_stats` | Daily goal, streak, last active day, problem order |
 | `users` | Accounts, password hash, role (`admin` or `user`) |
-| `todos` | Personal tasks |
 | `daily_logs` | Shared daily writeups |
 | `allowed_emails` | Declared in the schema; sign-in is account-based |
 
@@ -157,9 +156,9 @@ npm run start    # serve the production build
 app/                 pages, layouts, and route handlers
   (dsa)/             algorithms dashboard and problem flow
   sql/               SQL practice
-  api/               todos, daily logs, AtCoder proxies
+  api/               daily logs
   actions/           auth and user admin
-  login, change-password, admin, daily, todo, calendar, practice, whiteboard
+  login, change-password, admin, daily, whiteboard
 components/          shell, sidebar, admin, whiteboard
 data/grind169.json   source list mirrored by the embedded catalog in db/init.ts
 db/                  Drizzle schema, libsql client, runtime schema setup, SQL catalog
