@@ -13,7 +13,7 @@ export function LayoutShell({
   const pathname = usePathname();
   const isBarePage = pathname === "/login" || pathname === "/change-password";
   const isFill = pathname.startsWith("/whiteboard") || pathname.startsWith("/notes") || pathname.startsWith("/pdfs");
-  const isWide = pathname.startsWith("/golang");
+  const isWide = pathname.startsWith("/golang") || pathname.startsWith("/math");
 
   if (isBarePage) {
     return <div className="w-full h-screen overflow-auto">{children}</div>;

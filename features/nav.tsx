@@ -11,6 +11,8 @@ import {
   Library,
   Code,
   FileText,
+  Sparkles,
+  Timer,
 } from "lucide-react";
 import { goLevels } from "@/lib/golang/catalog";
 
@@ -66,6 +68,24 @@ export const navGroups: NavGroup[] = [
         href: `/golang/${level.slug}`,
         icon: level.icon,
       })),
+    ],
+  },
+  {
+    label: "Math",
+    items: [
+      {
+        name: "Tricks",
+        href: "/math",
+        icon: Sparkles,
+        isActive: (pathname) =>
+          pathname === "/math" || (pathname.startsWith("/math/") && !pathname.startsWith("/math/practice")),
+      },
+      {
+        name: "Practice",
+        href: "/math/practice",
+        icon: Timer,
+        isActive: (pathname) => pathname.startsWith("/math/practice"),
+      },
     ],
   },
   {

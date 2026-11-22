@@ -119,6 +119,74 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@keyframes math-frame-10 {
+  0%, 9% { opacity: 1; }
+  10%, 100% { opacity: 0; }
+}
+
+@keyframes math-frame-9 {
+  0%, 10.5% { opacity: 1; }
+  11.111%, 100% { opacity: 0; }
+}
+
+@keyframes math-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(5px); }
+}
+
+@keyframes math-grow {
+  0%, 12% { width: 0%; }
+  50%, 100% { width: 100%; }
+}
+
+@keyframes math-hop {
+  0%, 18% { left: 55.6%; top: 51%; }
+  42%, 60% { left: 61.1%; top: 36%; }
+  100% { left: 88.9%; top: 51%; }
+}
+
+.math-frame-10 {
+  animation: math-frame-10 20s linear infinite;
+  opacity: 0;
+}
+
+.math-frame-9 {
+  animation: math-frame-9 18s linear infinite;
+  opacity: 0;
+}
+
+.math-nudge {
+  animation: math-nudge 1.4s ease-in-out infinite;
+}
+
+.math-grow {
+  animation: math-grow 2.8s ease-in-out infinite;
+}
+
+.math-hop {
+  left: 55.6%;
+  top: 51%;
+  animation: math-hop 4.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .math-frame-9,
+  .math-frame-10 {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+
+  .math-frame-still {
+    opacity: 1 !important;
+  }
+
+  .math-nudge,
+  .math-grow,
+  .math-hop {
+    animation: none !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
